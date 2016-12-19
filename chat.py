@@ -16,16 +16,21 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
-import gtk
-import pango
 import subprocess
 import logging
 
-import sugar.graphics.style as style
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import Pango
+
+import sugar3.graphics.style as style
 
 import face
 from chatbox import ChatBox
-from sugar.presence import presenceservice
+from sugar3.presence import presenceservice
 
 logger = logging.getLogger('speak')
 
@@ -67,9 +72,9 @@ def _is_tablet_mode():
     return False
 
 
-class View(gtk.EventBox):
+class View(Gtk.EventBox):
     def __init__(self):
-        gtk.EventBox.__init__(self)
+        Gtk.EventBox.__init__(self)
 
         self.messenger = None
         self.me = None
@@ -79,11 +84,11 @@ class View(gtk.EventBox):
 
         # buddies box
 
-        self._buddies_sw = gtk.ScrolledWindow()
-        self._buddies_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_NEVER)
+        self._buddies_sw = Gtk.ScrolledWindow()
+        self._buddies_sw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
         self._buddies_sw.set_size_request(BUDDY_SIZE, BUDDY_SIZE)
 
-        self._buddies_box = gtk.HBox()
+        self._buddies_box = Gtk.HBox()
         self._buddies_box.set_size_request(BUDDY_SIZE, BUDDY_SIZE)
         self._buddies_sw.add_with_viewport(self._buddies_box)
         self._buddies_box.show()
@@ -93,7 +98,7 @@ class View(gtk.EventBox):
         self._owner = presenceservice.get_instance().get_owner()
         self._chat = ChatBox(self._owner, _is_tablet_mode())
         self._chat.set_size_request(
-            -1, gtk.gdk.screen_height() - style.GRID_CELL_SIZE - BUDDY_SIZE)
+            -1, Gdk.Screen.height() - style.GRID_CELL_SIZE - BUDDY_SIZE)
         self.me, my_face_widget = self._new_face(self._owner,
                 ENTRY_COLOR)
         my_face_widget.set_size_request(BUDDY_SIZE, BUDDY_SIZE)
@@ -105,46 +110,46 @@ class View(gtk.EventBox):
                 'lang': ''
                 }
 
-        self.chat_post = gtk.Entry()
+        self.chat_post = Gtk.Entry()
         entry_height = int(BUDDY_SIZE)
-        entry_width = gtk.gdk.screen_width() - \
+        entry_width = Gdk.Screen.width() - \
                       max(1, min(5, len(self._buddies))) * BUDDY_SIZE
         self.chat_post.set_size_request(entry_width, entry_height)
-        self.chat_post.modify_bg(gtk.STATE_NORMAL,
+        self.chat_post.modify_bg(Gtk.StateType.NORMAL,
                                  style.COLOR_WHITE.get_gdk_color())
-        self.chat_post.modify_base(gtk.STATE_NORMAL,
+        self.chat_post.modify_base(Gtk.StateType.NORMAL,
                                    style.COLOR_WHITE.get_gdk_color())
-        self.chat_post.modify_font(pango.FontDescription(str='sans bold 24'))
+        self.chat_post.modify_font(Pango.FontDescription('sans bold 24'))
         self.chat_post.connect('activate', self._activate_cb)
         self.chat_post.connect('key-press-event', self._key_press_cb)
 
-        chat_post_box = gtk.VBox()
-        chat_post_box.pack_start(self.chat_post, padding=ENTRY_XPAD)
+        chat_post_box = Gtk.VBox()
+        chat_post_box.pack_start(self.chat_post, True, True, ENTRY_XPAD)
         self.chat_post.show()
 
-        chat_entry = gtk.HBox()
-        self._buddies_box.pack_start(my_face_widget)
-        chat_entry.pack_start(self._buddies_sw)
+        chat_entry = Gtk.HBox()
+        self._buddies_box.pack_start(my_face_widget, True, True, 0)
+        chat_entry.pack_start(self._buddies_sw, True, True, 0)
         my_face_widget.show()
-        chat_entry.pack_start(chat_post_box)
+        chat_entry.pack_start(chat_post_box, True, True, 0)
         chat_post_box.show()
 
         if _is_tablet_mode():
-            chat_box = gtk.VBox()
-            chat_box.pack_start(chat_entry)
+            chat_box = Gtk.VBox()
+            chat_box.pack_start(chat_entry, True, True, 0)
             chat_entry.show()
-            chat_box.pack_start(self._chat, expand=True)
+            chat_box.pack_start(self._chat, True, True, 0)
             self._chat.show()
         else:
-            chat_box = gtk.VBox()
-            chat_box.pack_start(self._chat, expand=True)
+            chat_box = Gtk.VBox()
+            chat_box.pack_start(self._chat, True, True, 0)
             self._chat.show()
-            chat_box.pack_start(chat_entry)
+            chat_box.pack_start(chat_entry, True, True, 0)
             chat_entry.show()
 
         # desk
-        self._desk = gtk.HBox()
-        self._desk.pack_start(chat_box)
+        self._desk = Gtk.HBox()
+        self._desk.pack_start(chat_box, True, True, 0)
         self.add(self._desk)
         self._desk.show()
 
@@ -152,12 +157,12 @@ class View(gtk.EventBox):
         if expanded:
             self._chat.set_size_request(
                 -1,
-                gtk.gdk.screen_height() - 2 * style.GRID_CELL_SIZE
+                Gdk.Screen.height() - 2 * style.GRID_CELL_SIZE
                 - BUDDY_SIZE)
         else:
             self._chat.set_size_request(
                 -1,
-                gtk.gdk.screen_height() - style.GRID_CELL_SIZE - BUDDY_SIZE)
+                Gdk.Screen.height() - style.GRID_CELL_SIZE - BUDDY_SIZE)
 
     def update(self, status):
         self.me.update(status)
@@ -213,7 +218,7 @@ class View(gtk.EventBox):
             len(self._buddies) * BUDDY_SIZE, -1)
         size = min(5, len(self._buddies)) * BUDDY_SIZE
         self._buddies_sw.set_size_request(size, -1)
-        self.chat_post.set_size_request(gtk.gdk.screen_width() - size, -1)
+        self.chat_post.set_size_request(Gdk.Screen.width() - size, -1)
 
     def farewell(self, buddy):
         i = self._find_buddy(buddy)
@@ -231,16 +236,16 @@ class View(gtk.EventBox):
         self.me.shut_up();
 
     def _add_buddy(self, buddy):
-        box = gtk.VBox()
+        box = Gtk.VBox()
         buddy_face, buddy_widget = self._new_face(buddy, BUDDIES_COLOR)
-        box.pack_start(buddy_widget)
+        box.pack_start(buddy_widget, True, True, 0)
         buddy_widget.show()
         self._buddies[buddy] = {
                 'box': box,
                 'face': buddy_face,
                 'lang': ''
                 }
-        self._buddies_box.pack_start(box)
+        self._buddies_box.pack_start(box, True, True, 0)
         box.show()
         self.resize_buddy_list()
 
@@ -256,8 +261,8 @@ class View(gtk.EventBox):
         return True
 
     def _key_press_cb(self, widget, event):
-        if event.keyval == gtk.keysyms.Return:
-            if not (event.state & gtk.gdk.CONTROL_MASK):
+        if event.keyval == Gdk.KEY_Return:
+            if not (event.state & Gdk.ModifierType.CONTROL_MASK):
                 return self._activate_cb(widget, event)
         return False
 
@@ -270,9 +275,9 @@ class View(gtk.EventBox):
         buddy_face.set_size_request(BUDDY_SIZE - style.DEFAULT_PADDING,
                                     BUDDY_SIZE - style.DEFAULT_PADDING)
 
-        outer = gtk.VBox()
+        outer = Gtk.VBox()
         outer.set_size_request(BUDDY_SIZE, BUDDY_SIZE)
-        outer.pack_start(buddy_face)
+        outer.pack_start(buddy_face, True, True, 0)
         buddy_face.show_all()
 
         return (buddy_face, outer)

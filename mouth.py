@@ -23,17 +23,21 @@
 
 # This code is a super-stripped down version of the waveform view from Measure
 
-import gtk
 import cairo
 from struct import unpack
 import numpy.core
 
+import gi
+gi.require_version("Gtk", "3.0")
 
-class Mouth(gtk.DrawingArea):
+from gi.repository import Gtk
+
+
+class Mouth(Gtk.DrawingArea):
     def __init__(self, audioSource, fill_color):
 
-        gtk.DrawingArea.__init__(self)
-        self.connect("expose_event", self.expose)
+        Gtk.DrawingArea.__init__(self)
+        self.connect("draw", self.expose)
         self.buffers = []
         self.buffer_size = 256
         self.main_buffers = []
@@ -61,18 +65,18 @@ class Mouth(gtk.DrawingArea):
         else:
             self.volume = numpy.core.max(self.main_buffers)  # - numpy.core.min(self.main_buffers)
 
-    def expose(self, widget, event):
+    def expose(self, widget, context):
         """This function is the "expose" event handler and does all the drawing."""
         bounds = self.get_allocation()
 
         self.processBuffer(bounds)
 
         #Create context, disable antialiasing
-        self.context = widget.window.cairo_create()
+        self.context = context
         self.context.set_antialias(cairo.ANTIALIAS_NONE)
 
         #set a clip region for the expose event. This reduces redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
+        self.context.rectangle(bounds.x, bounds.y, bounds.width, bounds.height)
         self.context.clip()
 
         # background

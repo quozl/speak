@@ -1,12 +1,18 @@
 import math
 import logging
 
-import gtk
 import cairo
-import gobject
 from gettext import gettext as _
 
-from sugar.graphics.icon import Icon
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import GdkPixbuf
+
+from sugar3.graphics.icon import Icon
 
 _POINT_CIRCUMFERENCE = 5
 
@@ -50,17 +56,17 @@ class Mouth(object):
                                        int(self.w), int(self.h))
         return self
 
-class FaceSelector(gtk.VBox):
+class FaceSelector(Gtk.VBox):
 
     __gsignals__ = {
-        'face-processed': (gobject.SIGNAL_RUN_FIRST, None,
-            [gobject.TYPE_OBJECT, gobject.TYPE_PYOBJECT,
-             gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT]),
-        'cancel': (gobject.SIGNAL_RUN_FIRST, None, [])
+        'face-processed': (GObject.SIGNAL_RUN_FIRST, None,
+            [GObject.TYPE_OBJECT, GObject.TYPE_PYOBJECT,
+             GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT]),
+        'cancel': (GObject.SIGNAL_RUN_FIRST, None, [])
     }
 
     def __init__(self, file_):
-        gtk.VBox.__init__(self)
+        Gtk.VBox.__init__(self)
         self._step = 0
         self._step_lines = []
 
@@ -68,31 +74,31 @@ class FaceSelector(gtk.VBox):
         self.pack_start(self._drawing, True, True, 0)
         self._drawing.show()
 
-        self._toolbar = gtk.Toolbar()
+        self._toolbar = Gtk.Toolbar()
         self.pack_start(self._toolbar, False, True, 0)
         self._toolbar.show()
 
-        self._label = gtk.Label()
+        self._label = Gtk.Label()
         self._label.set_alignment(0.5, 0.5)
         self._add_widget(self._label)
 
-        sep = gtk.SeparatorToolItem()
+        sep = Gtk.SeparatorToolItem()
         sep.set_draw(False)
         sep.set_expand(True)
         self._toolbar.insert(sep, -1)
         sep.show()
 
-        gtk.settings_get_default().props.gtk_button_images = True
+        Gtk.Settings.get_default().props.gtk_button_images = True
 
-        bnt = gtk.Button()
+        bnt = Gtk.Button()
         bnt.set_label(_('Cancel'))
         bnt.connect('clicked', self.__cancel_clicked_cb)
         self._add_widget(bnt)
 
-        bnt = gtk.Button()
+        bnt = Gtk.Button()
         bnt.set_label(_('Next'))
         bnt.set_image(Icon(icon_name='go-next'))
-        bnt.set_image_position(gtk.POS_RIGHT)
+        bnt.set_image_position(Gtk.PositionType.RIGHT)
         bnt.connect('clicked', self.__next_clicked_cb)
         self._add_widget(bnt)
 
@@ -142,37 +148,36 @@ class FaceSelector(gtk.VBox):
                                self._drawing.get_pixbuf()))
 
     def _add_widget(self, widget):
-        t = gtk.ToolItem()
+        t = Gtk.ToolItem()
         t.set_expand(True)
         t.add(widget)
         widget.show()
         self._toolbar.insert(t, -1)
         t.show()
 
-class FaceSelectorDrawing(gtk.DrawingArea):
+class FaceSelectorDrawing(Gtk.DrawingArea):
 
     def __init__(self, file_):
-        gtk.DrawingArea.__init__(self)
+        Gtk.DrawingArea.__init__(self)
         self.limit_axis = None
         self._start_point = None
         self._end_point = None
         self._mouse_point = None
 
-        self._full_pixbuf = gtk.gdk.pixbuf_new_from_file(file_)
+        self._full_pixbuf = GdkPixbuf.Pixbuf.new_from_file(file_)
         self._pixbuf = None
         self._offset_x = None
         self._offset_y = None
 
-        self.set_events(gtk.gdk.BUTTON_PRESS_MASK |
-                        gtk.gdk.BUTTON_RELEASE_MASK |
-                        gtk.gdk.POINTER_MOTION_MASK)
-        self.connect('expose-event', self.__draw_cb)
+        self.set_events(Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.POINTER_MOTION_MASK)
+        self.connect('draw', self.__draw_cb)
         self.connect('button-press-event', self.__button_press_cb)
         self.connect('button-release-event', self.__button_release_cb)
         self.connect('motion-notify-event', self.__motion_cb)
 
     def __draw_cb(self, widget, cr):
-        cr = widget.window.cairo_create()
         alloc = widget.get_allocation()
 
         if not self._pixbuf:
@@ -181,13 +186,13 @@ class FaceSelectorDrawing(gtk.DrawingArea):
                             alloc.width,
                             alloc.height)
             self._pixbuf = self._full_pixbuf.scale_simple(
-                sw, sh, gtk.gdk.INTERP_BILINEAR)
+                sw, sh, GdkPixbuf.InterpType.BILINEAR)
 
             self._offset_x = (alloc.width - sw) / 2
             self._offset_y = (alloc.height - sh) / 2
 
         cr.rectangle(self._offset_x, self._offset_y, alloc.width, alloc.height)
-        cr.set_source_pixbuf(self._pixbuf, self._offset_x, self._offset_y)
+        Gdk.cairo_set_source_pixbuf(cr, self._pixbuf, self._offset_x, self._offset_y)
         cr.fill()
 
         if self._start_point and (self._mouse_point or self._end_point):

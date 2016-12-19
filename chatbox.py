@@ -24,18 +24,23 @@ import logging
 from datetime import datetime
 from gettext import gettext as _
 
-import gobject
-import gtk
-import pango
+import gi
+gi.require_version("Gtk", "3.0")
 
-from sugar.graphics import style
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import Pango
+from gi.repository import GObject
+
+from sugar3.graphics import style
 '''
-from sugar.graphics.palette import Palette, Invoker
-from sugar.graphics.palettemenu import PaletteMenuItem
-from sugar.graphics.palette import MouseSpeedDetector
+from sugar3.graphics.palette import Palette, Invoker
+from sugar3.graphics.palettemenu import PaletteMenuItem
+from sugar3.graphics.palette import MouseSpeedDetector
 '''
-from sugar.util import timestamp_to_elapsed_string
-from sugar import profile
+from sugar3.util import timestamp_to_elapsed_string
+from sugar3 import profile
 
 from roundbox import RoundBox
 
@@ -74,33 +79,33 @@ def darker_color(colors):
     return 1 - lighter_color(colors)
 
 
-class TextBox(gtk.EventBox):
+class TextBox(Gtk.EventBox):
 
     '''
     __gsignals__ = {
         'open-on-journal': (gobject.SignalFlags.RUN_FIRST, None, ([str])), }
 
-    # hand_cursor = gtk.gdk.Cursor.new(Gdk.CursorType.HAND2)
+    # hand_cursor = Gdk.Cursor.new(Gdk.CursorType.HAND2)
     '''
 
     def __init__(self, parent,
                  name_color, text_color, bg_color, highlight_color,
                  lang_rtl, nick_name=None, text=None):
-        gtk.EventBox.__init__(self)
+        Gtk.EventBox.__init__(self)
 
-        self.textview = gtk.TextView()
+        self.textview = Gtk.TextView()
 
         self.set_size_request(-1, style.GRID_CELL_SIZE)
         self.add(self.textview)
         self.textview.show()
 
         self._parent = parent
-        self._buffer = gtk.TextBuffer()
-        self._empty_buffer = gtk.TextBuffer()
+        self._buffer = Gtk.TextBuffer()
+        self._empty_buffer = Gtk.TextBuffer()
         self._empty_buffer.set_text('')
         self._empty = True
         self._name_tag = self._buffer.create_tag(
-            'name', foreground=name_color.get_html(), weight=pango.WEIGHT_BOLD,
+            'name', foreground=name_color.get_html(), weight=Pango.Weight.BOLD,
             background=bg_color.get_html())
         self._fg_tag = self._buffer.create_tag(
             'foreground_color', foreground=text_color.get_html(),
@@ -108,7 +113,7 @@ class TextBox(gtk.EventBox):
         self._subscript_tag = self.textview.get_buffer().create_tag(
             'subscript', foreground=text_color.get_html(),
             background=bg_color.get_html(),
-            rise=-7 * pango.SCALE)  # in pixels
+            rise=-7 * Pango.SCALE)  # in pixels
 
         if nick_name:
             self._add_name(nick_name)
@@ -121,9 +126,9 @@ class TextBox(gtk.EventBox):
         self._lang_rtl = lang_rtl
         self.textview.set_editable(False)
         self.textview.set_cursor_visible(False)
-        self.textview.set_wrap_mode(gtk.WRAP_WORD)
+        self.textview.set_wrap_mode(Gtk.WRAP_WORD)
 
-        self.textview.modify_base(gtk.STATE_NORMAL, bg_color.get_gdk_color())
+        self.textview.modify_base(Gtk.StateType.NORMAL, bg_color.get_gdk_color())
 
         self.connect('size-allocate', self.__size_allocate_cb)
 
@@ -134,7 +139,7 @@ class TextBox(gtk.EventBox):
 
     def resize_box(self):
         self.textview.set_buffer(self._empty_buffer)
-        self.set_size_request(gtk.gdk.screen_width() - style.GRID_CELL_SIZE
+        self.set_size_request(Gdk.Screen.width() - style.GRID_CELL_SIZE
                               - 2 * style.DEFAULT_SPACING, -1)
 
     def _add_name(self, name):
@@ -165,10 +170,10 @@ class TextBox(gtk.EventBox):
         self._empty = False
 
 
-class ChatBox(gtk.ScrolledWindow):
+class ChatBox(Gtk.ScrolledWindow):
 
     def __init__(self, owner, tablet_mode):
-        gtk.ScrolledWindow.__init__(self)
+        Gtk.ScrolledWindow.__init__(self)
 
         if owner is None:
             self._owner = {'nick': profile.get_nick_name(),
@@ -193,22 +198,22 @@ class ChatBox(gtk.ScrolledWindow):
         self._grid_list = []
         self._message_list = []
 
-        self._conversation = gtk.VBox()
+        self._conversation = Gtk.VBox()
         # self._conversation.set_row_spacing(style.DEFAULT_PADDING)
         # self._conversation.set_border_width(0)
         self._conversation.set_size_request(
-            gtk.gdk.screen_width() - style.GRID_CELL_SIZE, -1)
+            Gdk.Screen.width() - style.GRID_CELL_SIZE, -1)
 
         # OSK padding for conversation
         self._dy = 0
 
-        evbox = gtk.EventBox()
+        evbox = Gtk.EventBox()
         evbox.modify_bg(
-            gtk.STATE_NORMAL, style.COLOR_WHITE.get_gdk_color())
+            Gtk.StateType.NORMAL, style.COLOR_WHITE.get_gdk_color())
         evbox.add(self._conversation)
         self._conversation.show()
 
-        self.set_policy(gtk.POLICY_NEVER, gtk.POLICY_ALWAYS)
+        self.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
         self.add_with_viewport(evbox)
         evbox.show()
 
@@ -310,7 +315,7 @@ class ChatBox(gtk.ScrolledWindow):
         self._add_log(nick, color, text, status_message)
 
         # Check for Right-To-Left languages:
-        if pango.find_base_dir(nick, -1) == pango.DIRECTION_RTL:
+        if Pango.find_base_dir(nick, -1) == Pango.Direction.RTL:
             lang_rtl = True
         else:
             lang_rtl = False
@@ -332,9 +337,9 @@ class ChatBox(gtk.ScrolledWindow):
             rb.tail = tail
             self._rb_list.append(rb)
 
-            grid_internal = gtk.VBox()
+            grid_internal = Gtk.VBox()
             grid_internal.set_size_request(
-                gtk.gdk.screen_width() - style.GRID_CELL_SIZE,
+                Gdk.Screen.width() - style.GRID_CELL_SIZE,
                 style.GRID_CELL_SIZE)  # -1)
             self._grid_list.append(grid_internal)
 
@@ -355,7 +360,7 @@ class ChatBox(gtk.ScrolledWindow):
             grid_internal.pack_start(message, expand=False, padding=0)
             row += 1
 
-            align = gtk.Alignment(0.0, 0.0, 1.0, 1.0)
+            align = Gtk.Alignment(0.0, 0.0, 1.0, 1.0)
             if rb.tail is None:
                 bottom_padding = style.zoom(7)
             else:
@@ -396,8 +401,8 @@ class ChatBox(gtk.ScrolledWindow):
                           style.COLOR_WHITE, style.COLOR_BUTTON_GREY, False,
                           None, timestamp_to_elapsed_string(timestamp_seconds))
         self._message_list.append(message)
-        box = gtk.HBox()
-        align = gtk.Alignment(0.5, 0.0, 0.0, 0.0)
+        box = Gtk.HBox()
+        align = Gtk.Alignment(0.5, 0.0, 0.0, 0.0)
         box.pack_start(align, True, True, 0)
         align.show()
         align.add(message)
@@ -459,10 +464,10 @@ class ChatBox(gtk.ScrolledWindow):
     def resize_rb(self):
         for grid in self._grid_list:
             grid.set_size_request(
-                gtk.gdk.screen_width() - style.GRID_CELL_SIZE, -1)
+                Gdk.Screen.width() - style.GRID_CELL_SIZE, -1)
         for rb in self._rb_list:
             rb.set_size_request(
-                gtk.gdk.screen_width() - style.GRID_CELL_SIZE, -1)
+                Gdk.Screen.width() - style.GRID_CELL_SIZE, -1)
         self.resize_conversation()
 
     def resize_conversation(self, dy=None):
@@ -473,5 +478,5 @@ class ChatBox(gtk.ScrolledWindow):
             self._dy = dy
 
         self._conversation.set_size_request(
-            gtk.gdk.screen_width() - style.GRID_CELL_SIZE,
-            int(gtk.gdk.screen_height() - 2.5 * style.GRID_CELL_SIZE) - dy)
+            Gdk.Screen.width() - style.GRID_CELL_SIZE,
+            int(Gdk.Screen.height() - 2.5 * style.GRID_CELL_SIZE) - dy)

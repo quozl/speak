@@ -17,8 +17,12 @@
 import logging
 logger = logging.getLogger('speak')
 
-import gst
 import local_espeak as espeak
+
+import gi
+gi.require_version("Gst", "3.0")
+
+from gi.repository import Gst
 
 PITCH_MAX = 200
 RATE_MAX = 200
@@ -46,10 +50,11 @@ class AudioGrabGst(espeak.BaseAudioGrab):
 
         self.restart_sound_device()
 
+
 def voices():
     out = []
 
-    for i in gst.element_factory_make('espeak').props.voices:
+    for i in Gst.ElementFactory.make('espeak').props.voices:
         name, language, dialect = i
         #if name in ('en-rhotic','english_rp','english_wmids'):
             # these voices don't produce sound

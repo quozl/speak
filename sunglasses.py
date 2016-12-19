@@ -25,6 +25,12 @@
 from eye import *
 import logging
 
+import gi
+gi.require_version("Gdk", "3.0")
+
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+
 
 class Sunglasses(Eye):
     def __init__(self, fill_color):
@@ -47,7 +53,7 @@ class Sunglasses(Eye):
             which_eye = 1
         self._which_eye = which_eye
 
-    def expose(self, widget, event):
+    def expose(self, widget, context):
         bounds = self.get_allocation()
 
         eyeSize = min(bounds.width, bounds.height)
@@ -62,13 +68,13 @@ class Sunglasses(Eye):
             pupilX = bounds.width / 2 + dX * limit / distance
             pupilY = bounds.height / 2 + dY * limit / distance
 
-        self.context = widget.window.cairo_create()
+        self.context = context
 
         #set a clip region for the expose event. This reduces
         #redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y,
-                               event.area.width, event.area.height)
-        self.context.clip()
+        #self.context.rectangle(event.area.x, event.area.y,
+        #                       event.area.width, event.area.height)
+        #self.context.clip()
 
         # background
         self.context.set_source_rgba(*self.fill_color.get_rgba())
@@ -79,22 +85,22 @@ class Sunglasses(Eye):
         x = int((bounds.width - w) / 2)
         y = int((bounds.height - h) / 2)
         pixbuf = self._pixbufs[self._which_eye].scale_simple(
-            w, h, gtk.gdk.INTERP_BILINEAR)
+            w, h, GdkPixbuf.InterpType.BILINEAR)
         self.context.translate(x + w / 2., y + h / 2.)
         self.context.translate(-x - w / 2., -y - h / 2.)
 
         if self._which_eye == 0:
             x = bounds.width - w
             dx = x - int((bounds.width - w) / 2)
-            self.context.set_source_pixbuf(pixbuf, x, y)
+            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
             self.context.rectangle(x, y, w, h)
         elif self._which_eye == 2:
             dx = -x
-            self.context.set_source_pixbuf(pixbuf, 0, y)
+            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, 0, y)
             self.context.rectangle(0, y, w, h)
         else:
             dx = 0
-            self.context.set_source_pixbuf(pixbuf, x, y)
+            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
             self.context.rectangle(x, y, w, h)
 
         self.context.fill()
@@ -109,7 +115,7 @@ class Sunglasses(Eye):
 
 def svg_str_to_pixbuf(svg_string):
     """ Load pixbuf from SVG string """
-    pl = gtk.gdk.PixbufLoader('svg')
+    pl = GdkPixbuf.PixbufLoader.new_with_type('svg')
     pl.write(svg_string)
     pl.close()
     pixbuf = pl.get_pixbuf()

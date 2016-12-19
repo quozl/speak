@@ -14,37 +14,44 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import gst
-import gobject
 import subprocess
+
+import gi
+gi.require_version("Gst", "1.0")
+
+from gi.repository import Gst
+from gi.repository import GObject
+
+from sugar3.speech import SpeechManager
 
 import logging
 logger = logging.getLogger('speak')
 
 supported = True
 
+Gst.init([])
 
-class BaseAudioGrab(gobject.GObject):
+class BaseAudioGrab(GObject.GObject):
     __gsignals__ = {
-        'new-buffer': (gobject.SIGNAL_RUN_FIRST, None, [gobject.TYPE_PYOBJECT])
+        'new-buffer': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT])
     }
 
     def __init__(self):
-        gobject.GObject.__init__(self)
+        GObject.GObject.__init__(self)
         self.pipeline = None
         self.quiet = True
 
     def restart_sound_device(self):
         self.quiet = False
 
-        self.pipeline.set_state(gst.STATE_NULL)
-        self.pipeline.set_state(gst.STATE_PLAYING)
+        self.pipeline.set_state(Gst.State.NULL)
+        self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop_sound_device(self):
         if self.pipeline is None:
             return
 
-        self.pipeline.set_state(gst.STATE_NULL)
+        self.pipeline.set_state(Gst.State.NULL)
         # Shut theirs mouths down
         self._new_buffer('')
 
@@ -58,7 +65,7 @@ class BaseAudioGrab(gobject.GObject):
         # build a pipeline that reads the given file
         # and sends it to both the real audio output
         # and a fake one that we use to draw from
-        self.pipeline = gst.parse_launch(
+        self.pipeline = Gst.parse_launch(
                 cmd + ' ' \
                 '! decodebin ' \
                 '! tee name=tee ' \
@@ -69,17 +76,17 @@ class BaseAudioGrab(gobject.GObject):
 
         def on_buffer(element, buffer, pad):
             # we got a new buffer of data, ask for another
-            gobject.timeout_add(100, self._new_buffer, str(buffer))
+            GObject.timeout_add(100, self._new_buffer, str(buffer))
             return True
 
         sink = self.pipeline.get_by_name('sink')
         sink.props.signal_handoffs = True
         sink.connect('handoff', on_buffer)
 
-        def gstmessage_cb(bus, message):
+        def Gstmessage_cb(bus, message):
             self._was_message = True
 
-            if message.type == gst.MESSAGE_WARNING:
+            if message.type == Gst.MessageType.WARNING:
                 def check_after_warnings():
                     if not self._was_message:
                         self.stop_sound_device()
@@ -87,16 +94,16 @@ class BaseAudioGrab(gobject.GObject):
 
                 logger.debug(message.type)
                 self._was_message = False
-                gobject.timeout_add(500, self._new_buffer, str(buffer))
+                GObject.timeout_add(500, self._new_buffer, str(buffer))
 
-            elif  message.type in (gst.MESSAGE_EOS, gst.MESSAGE_ERROR):
+            elif  message.type in (Gst.MessageType.EOS, Gst.MessageType.ERROR):
                 logger.debug(message.type)
                 self.stop_sound_device()
 
         self._was_message = False
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
-        bus.connect('message', gstmessage_cb)
+        bus.connect('message', Gstmessage_cb)
 
     def _new_buffer(self, buf):
         if not self.quiet:
@@ -104,15 +111,16 @@ class BaseAudioGrab(gobject.GObject):
             self.emit("new-buffer", buf)
         return False
 
+
 # load proper espeak plugin
 try:
-    import gst
-    gst.element_factory_make('espeak')
-    from espeak_gst import AudioGrabGst as AudioGrab
-    from espeak_gst import *
-    logger.info('use gst-plugins-espeak')
+    import Gst
+    Gst.element_factory_make('espeak')
+    from espeak_Gst import AudioGrabGst as AudioGrab
+    from espeak_Gst import *
+    logger.info('use Gst-plugins-espeak')
 except Exception, e:
-    logger.info('disable gst-plugins-espeak: %s' % e)
+    logger.info('disable Gst-plugins-espeak: %s' % e)
     if subprocess.call('which espeak', shell=True) == 0:
         from espeak_cmd import AudioGrabCmd as AudioGrab
         from espeak_cmd import *

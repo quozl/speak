@@ -21,24 +21,27 @@
 #     You should have received a copy of the GNU General Public License
 #     along with Speak.activity.  If not, see <http://www.gnu.org/licenses/>.
 
-import pygtk
-import gtk
-import gtk.gdk
 import math
 
+import gi
+gi.require_version("Gtk", "3.0")
 
-class Eye(gtk.DrawingArea):
+from gi.repository import Gtk
+from gi.repository import Gdk
+
+
+class Eye(Gtk.DrawingArea):
     def __init__(self, fill_color):
-        gtk.DrawingArea.__init__(self)
-        self.connect("expose_event", self.expose)
+        Gtk.DrawingArea.__init__(self)
+        self.connect("draw", self.expose)
         self.frame = 0
         self.blink = False
         self.x, self.y = 0, 0
         self.fill_color = fill_color
 
         # listen for clicks
-        self.add_events(gtk.gdk.BUTTON_PRESS_MASK)
-        self.add_events(gtk.gdk.BUTTON_RELEASE_MASK)
+        self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        self.add_events(Gdk.EventMask.BUTTON_RELEASE_MASK)
         self.connect("button_press_event", self._mouse_pressed_cb)
         self.connect("button_release_event", self._mouse_released_cb)
 
@@ -72,7 +75,7 @@ class Eye(gtk.DrawingArea):
 
         if self.x is None or self.y is None:
             # look ahead, but not *directly* in the middle
-            if a.x + a.width / 2 < self.parent.get_allocation().width / 2:
+            if a.x + a.width / 2 < self.get_parent().get_allocation().width / 2:
                 cx = a.width * 0.6
             else:
                 cx = a.width * 0.4
@@ -102,7 +105,7 @@ class Eye(gtk.DrawingArea):
 
         return a.width / 2 + dx, a.height / 2 + dy
 
-    def expose(self, widget, event):
+    def expose(self, widget, context):
         self.frame += 1
         bounds = self.get_allocation()
 
@@ -118,12 +121,12 @@ class Eye(gtk.DrawingArea):
             pupilX = bounds.width / 2 + dX * limit / distance
             pupilY = bounds.height / 2 + dY * limit / distance
 
-        self.context = widget.window.cairo_create()
+        self.context = context
         #self.context.set_antialias(cairo.ANTIALIAS_NONE)
 
         #set a clip region for the expose event. This reduces redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-        self.context.clip()
+        ##self.context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
+        ##self.context.clip()
 
         # background
         self.context.set_source_rgba(*self.fill_color.get_rgba())

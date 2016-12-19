@@ -24,6 +24,12 @@
 
 from eye import *
 
+import gi
+gi.require_version("Gdk", "3.0")
+
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+
 
 class Sleepy(Eye):
     def __init__(self, fill_color):
@@ -31,16 +37,16 @@ class Sleepy(Eye):
 
         self._pixbuf = svg_str_to_pixbuf(eye_svg())
 
-    def expose(self, widget, event):
+    def expose(self, widget, context):
         bounds = self.get_allocation()
 
-        self.context = widget.window.cairo_create()
+        self.context = context
 
         #set a clip region for the expose event. This reduces
         #redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y,
-                               event.area.width, event.area.height)
-        self.context.clip()
+        #self.context.rectangle(event.area.x, event.area.y,
+        #                       event.area.width, event.area.height)
+        #self.context.clip()
 
         # background
         self.context.set_source_rgba(*self.fill_color.get_rgba())
@@ -50,10 +56,10 @@ class Sleepy(Eye):
         w = h = min(bounds.width, bounds.height)
         x = int((bounds.width - w) / 2)
         y = int((bounds.height - h) / 2)
-        pixbuf = self._pixbuf.scale_simple(w, h, gtk.gdk.INTERP_BILINEAR)
+        pixbuf = self._pixbuf.scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
         self.context.translate(x + w / 2., y + h / 2.)
         self.context.translate(-x - w / 2., -y - h / 2.)
-        self.context.set_source_pixbuf(pixbuf, x, y)
+        Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
         self.context.rectangle(x, y, w, h)
         self.context.fill()
 
@@ -62,7 +68,7 @@ class Sleepy(Eye):
 
 def svg_str_to_pixbuf(svg_string):
     """ Load pixbuf from SVG string """
-    pl = gtk.gdk.PixbufLoader('svg')
+    pl = GdkPixbuf.PixbufLoader.new_with_type('svg')
     pl.write(svg_string)
     pl.close()
     pixbuf = pl.get_pixbuf()

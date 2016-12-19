@@ -86,7 +86,7 @@ class FFTMouth(Mouth):
 
         self.peaks = val
 
-    def expose(self, widget, event):
+    def expose(self, widget, context):
         """This function is the "expose" event handler and does all the drawing."""
 
         bounds = self.get_allocation()
@@ -94,12 +94,12 @@ class FFTMouth(Mouth):
         self.processBuffer(bounds)
 
         #Create context, disable antialiasing
-        self.context = widget.window.cairo_create()
+        self.context = context
         self.context.set_antialias(cairo.ANTIALIAS_NONE)
 
         #set a clip region for the expose event. This reduces redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y,event.area.width, event.area.height)
-        self.context.clip()
+        #self.context.rectangle(event.area.x, event.area.y,event.area.width, event.area.height)
+        #self.context.clip()
 
         # background
         self.context.set_source_rgba(*self.fill_color.get_rgba())

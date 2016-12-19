@@ -27,10 +27,9 @@
 
 
 import logging 
-import gtk
 import json
 
-import sugar.graphics.style as style
+import sugar3.graphics.style as style
 
 import local_espeak as espeak
 import eye
@@ -44,6 +43,12 @@ import mouth
 import voice
 import fft_mouth
 import waveform_mouth
+
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+from gi.repository import Gdk
 
 logger = logging.getLogger('speak')
 
@@ -110,9 +115,9 @@ class Status:
         return new
 
 
-class View(gtk.EventBox):
+class View(Gtk.EventBox):
     def __init__(self, fill_color=style.COLOR_BUTTON_GREY):
-        gtk.EventBox.__init__(self)
+        Gtk.EventBox.__init__(self)
 
         self.status = Status()
         self.fill_color = fill_color
@@ -123,20 +128,20 @@ class View(gtk.EventBox):
 
         # make an empty box for some eyes
         self._eyes = None
-        self._eyebox = gtk.HBox()
+        self._eyebox = Gtk.HBox()
         self._eyebox.show()
 
         # make an empty box to put the mouth in
         self._mouth = None
-        self._mouthbox = gtk.HBox()
+        self._mouthbox = Gtk.HBox()
         self._mouthbox.show()
 
         # layout the screen
-        self._box = gtk.VBox(homogeneous=False)
-        self._box.pack_start(self._eyebox)
-        self._box.pack_start(self._mouthbox, False)
+        self._box = Gtk.VBox(homogeneous=False)
+        self._box.pack_start(self._eyebox, True, True, 0)
+        self._box.pack_start(self._mouthbox, False, True, 0)
         self._box.set_border_width(FACE_PAD)
-        self.modify_bg(gtk.STATE_NORMAL, self.fill_color.get_gdk_color())
+        self.modify_bg(Gtk.StateType.NORMAL, self.fill_color.get_gdk_color())
         self.add(self._box)
 
         self._peding = None
@@ -162,7 +167,7 @@ class View(gtk.EventBox):
     def look_at(self, pos=None):
         if self._eyes:
             if pos is None:
-                display = gtk.gdk.display_get_default()
+                display = Gdk.Display.get_default()
                 screen_, x, y, modifiers_ = display.get_pointer()
             else:
                 x, y = pos
@@ -172,7 +177,7 @@ class View(gtk.EventBox):
         if not status:
             status = self.status
         else:
-            if not self.flags() & gtk.MAPPED:
+            if not False:##self.flags():### & gtk.MAPPED:
                 self._peding = status
                 return
             self.status = status
@@ -199,9 +204,9 @@ class View(gtk.EventBox):
                     eye.set_eye(1)
             self._eyes.append(eye)
             if eye.has_padding():
-                self._eyebox.pack_start(eye, padding=int(FACE_PAD / 4))
+                self._eyebox.pack_start(eye, True, True, int(FACE_PAD / 4))
             else:
-                self._eyebox.pack_start(eye)
+                self._eyebox.pack_start(eye, True, True, 0)
             eye.show()
 
         self._mouth = status.mouth(self._audio, self.fill_color)
@@ -210,7 +215,7 @@ class View(gtk.EventBox):
 
         # enable mouse move events so we can track the eyes while the
         # mouse is over the mouth
-        # self._mouth.add_events(gtk.gdk.POINTER_MOTION_MASK)
+        # self._mouth.add_events(Gtk.gdk.POINTER_MOTION_MASK)
 
     def set_voice(self, voice):
         self.status.voice = voice
