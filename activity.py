@@ -340,10 +340,8 @@ class SpeakActivity(activity.Activity):
     def _new_instance(self):
         if self._first_time:
             # self.voices.connect('changed', self.__changed_voices_cb)
-            self.pitchadj.connect('value_changed', self._pitch_adjusted_cb,
-                                  self.pitchadj)
-            self.rateadj.connect('value_changed', self._rate_adjusted_cb,
-                                 self.rateadj)
+            self.pitchadj.connect('value_changed', self._pitch_adjusted_cb)
+            self.rateadj.connect('value_changed', self._rate_adjusted_cb)
         if self._active_number_of_eyes is None:
             self._number_of_eyes_changed_event_cb(None, None, 'two', True)
         if self._active_eyes is None:
@@ -592,7 +590,7 @@ class SpeakActivity(activity.Activity):
         pitchbar = Gtk.HScale.new(self.pitchadj)
         pitchbar.set_draw_value(False)
         # pitchbar.set_inverted(True)
-        #pitchbar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
+        # pitchbar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
         pitchbar.set_size_request(240, 15)
 
         pitchbar_toolitem = ToolWidget(widget=pitchbar, label_text=_('Pitch:'))
@@ -604,7 +602,7 @@ class SpeakActivity(activity.Activity):
         ratebar = Gtk.HScale.new(self.rateadj)
         ratebar.set_draw_value(False)
         # ratebar.set_inverted(True)
-        #ratebar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
+        # ratebar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
         ratebar.set_size_request(240, 15)
 
         ratebar_toolitem = ToolWidget(widget=ratebar, label_text=_('Rate:'))
@@ -613,12 +611,12 @@ class SpeakActivity(activity.Activity):
         voicebar.show_all()
         return voicebar
 
-    def _pitch_adjusted_cb(self, get, data=None):
-        self.face.status.pitch = get.value
+    def _pitch_adjusted_cb(self, adjustment):
+        self.face.status.pitch = adjustment.get_value()
         self.face.say_notification(_('pitch adjusted'))
 
-    def _rate_adjusted_cb(self, get, data=None):
-        self.face.status.rate = get.value
+    def _rate_adjusted_cb(self, adjustment):
+        self.face.status.rate = adjustment.get_value()
         self.face.say_notification(_('rate adjusted'))
 
     def _make_face_bar(self):

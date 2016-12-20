@@ -177,7 +177,7 @@ class View(Gtk.EventBox):
         if not status:
             status = self.status
         else:
-            if not False:##self.flags():### & gtk.MAPPED:
+            if not self.get_mapped():
                 self._peding = status
                 return
             self.status = status

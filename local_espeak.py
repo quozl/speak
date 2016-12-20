@@ -16,20 +16,25 @@
 
 import subprocess
 
-import gi
-gi.require_version("Gst", "1.0")
+try:
+    from sugar3.speech import SpeechManager
+    _HAS_SPEECH_MANAGER = True
+except ImportError:
+    import gi
+    gi.require_version("Gst", "1.0")
 
-from gi.repository import Gst
+    from gi.repository import Gst
+    Gst.init([])
+
+    _HAS_SPEECH_MANAGER = False
+
 from gi.repository import GObject
-
-from sugar3.speech import SpeechManager
 
 import logging
 logger = logging.getLogger('speak')
 
 supported = True
 
-Gst.init([])
 
 class BaseAudioGrab(GObject.GObject):
     __gsignals__ = {
@@ -83,7 +88,7 @@ class BaseAudioGrab(GObject.GObject):
         sink.props.signal_handoffs = True
         sink.connect('handoff', on_buffer)
 
-        def Gstmessage_cb(bus, message):
+        def gst_message_cb(bus, message):
             self._was_message = True
 
             if message.type == Gst.MessageType.WARNING:
@@ -103,7 +108,7 @@ class BaseAudioGrab(GObject.GObject):
         self._was_message = False
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
-        bus.connect('message', Gstmessage_cb)
+        bus.connect('message', gst_message_cb)
 
     def _new_buffer(self, buf):
         if not self.quiet:
@@ -113,17 +118,23 @@ class BaseAudioGrab(GObject.GObject):
 
 
 # load proper espeak plugin
-try:
-    import Gst
-    Gst.element_factory_make('espeak')
-    from espeak_Gst import AudioGrabGst as AudioGrab
-    from espeak_Gst import *
-    logger.info('use Gst-plugins-espeak')
-except Exception, e:
-    logger.info('disable Gst-plugins-espeak: %s' % e)
-    if subprocess.call('which espeak', shell=True) == 0:
-        from espeak_cmd import AudioGrabCmd as AudioGrab
-        from espeak_cmd import *
-    else:
-        logger.info('disable espeak_cmd')
-        supported = False
+
+if _HAS_SPEECH_MANAGER:
+    from espeak_speech import AudioGrabSpeech as AudioGrab
+    from espeak_speech import *
+    logger.info('user sugar-speech')
+else:
+    try:
+        from gi.repository import Gst
+        Gst.element_factory_make('espeak')
+        from espeak_gst import AudioGrabGst as AudioGrab
+        from espeak_gst import *
+        logger.info('use gst-plugins-espeak')
+    except Exception, e:
+        logger.info('disable gst-plugins-espeak: %s' % e)
+        if subprocess.call('which espeak', shell=True) == 0:
+            from espeak_cmd import AudioGrabCmd as AudioGrab
+            from espeak_cmd import *
+        else:
+            logger.info('disable espeak_cmd')
+            supported = False
