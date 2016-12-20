@@ -126,7 +126,7 @@ if _HAS_SPEECH_MANAGER:
 else:
     try:
         from gi.repository import Gst
-        Gst.element_factory_make('espeak')
+        Gst.ElementFactory.make('espeak')
         from espeak_gst import AudioGrabGst as AudioGrab
         from espeak_gst import *
         logger.info('use gst-plugins-espeak')
