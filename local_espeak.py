@@ -72,21 +72,31 @@ class BaseAudioGrab(GObject.GObject):
         # and a fake one that we use to draw from
         self.pipeline = Gst.parse_launch(
                 cmd + ' ' \
-                '! decodebin ' \
-                '! tee name=tee ' \
-                'tee.! audioconvert ' \
-                    '! alsasink ' \
-                'tee.! queue ' \
-                    '! audioconvert ! fakesink name=sink')
+                '! decodebin use-buffering=true ' \
+                '! capsfilter caps="audio/x-raw, format=(string)S16LE, ' \
+                    'layout=(string)interleaved, rate=(int)22050, ' \
+                    'channels=(int)1"' \
+                '! audioconvert ' \
+                '! tee name=t ' \
+                '! queue2 name=appsink_queue max-size-bytes=0 ' \
+                    'max-size-buffers=0  max-size-time=0 ' \
+                '! appsink caps="audio/x-raw, format=(string)S16LE, ' \
+                    'layout=(string)interleaved, rate=(int)22050, '\
+                    'channels=(int)1" drop=false max-buffers=10 sync=true ' \
+                    'emit-signals=true t. ' \
+                '! queue2 name=autoaudio_queue max-size-bytes=0 ' \
+                    'max-size-buffers=0 max-size-time=0 '\
+                '! audioresample '\
+                '! autoaudiosink sync=true')
 
         def on_buffer(element, buffer, pad):
             # we got a new buffer of data, ask for another
             GObject.timeout_add(100, self._new_buffer, str(buffer))
             return True
 
-        sink = self.pipeline.get_by_name('sink')
-        sink.props.signal_handoffs = True
-        sink.connect('handoff', on_buffer)
+        # sink = self.pipeline.get_by_name('sink')
+        # sink.props.signal_handoffs = True
+        # sink.connect('handoff', on_buffer)
 
         def gst_message_cb(bus, message):
             self._was_message = True
@@ -115,7 +125,6 @@ class BaseAudioGrab(GObject.GObject):
             # pass captured audio to anyone who is interested
             self.emit("new-buffer", buf)
         return False
-
 
 # load proper espeak plugin
 

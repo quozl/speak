@@ -27,6 +27,7 @@ from gi.repository import Gst
 PITCH_MAX = 200
 RATE_MAX = 200
 
+
 class AudioGrabGst(espeak.BaseAudioGrab):
     def speak(self, status, text):
         # XXX workaround for http://bugs.sugarlabs.org/ticket/1801
@@ -43,10 +44,10 @@ class AudioGrabGst(espeak.BaseAudioGrab):
         logger.debug('pitch=%d rate=%d voice=%s text=%s' % (pitch, rate,
                 status.voice.name, text))
 
-        src.props.text = text
         src.props.pitch = pitch
         src.props.rate = rate
         src.props.voice = status.voice.name
+        src.props.text = text
 
         self.restart_sound_device()
 
