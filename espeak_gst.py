@@ -24,7 +24,9 @@ gi.require_version("Gst", "3.0")
 
 from gi.repository import Gst
 
+PITCH_MIN = 0
 PITCH_MAX = 200
+RATE_MIN = 0
 RATE_MAX = 200
 
 

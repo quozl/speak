@@ -22,7 +22,9 @@ logger = logging.getLogger('speak')
 
 import local_espeak as espeak
 
+PITCH_MIN = 0
 PITCH_MAX = 99
+RATE_MIN = 0
 RATE_MAX = 99
 
 class AudioGrabCmd(espeak.BaseAudioGrab):

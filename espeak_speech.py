@@ -28,7 +28,9 @@ import local_espeak as espeak
 
 supported = True
 
+PITCH_MIN = SpeechManager.MIN_PITCH
 PITCH_MAX = SpeechManager.MAX_PITCH
+RATE_MIN = SpeechManager.MIN_RATE
 RATE_MAX = SpeechManager.MAX_RATE
 
 class AudioGrabSpeech(espeak.BaseAudioGrab):

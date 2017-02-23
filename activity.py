@@ -584,25 +584,21 @@ class SpeakActivity(activity.Activity):
         separator.set_expand(False)
         voicebar.insert(separator, -1)
 
-        self.pitchadj = Gtk.Adjustment(self.face.status.pitch, 0,
-                                       10, 1,#espeak.PITCH_MAX, 1,
-                                       1, 0)#espeak.PITCH_MAX/10, 0)
+        self.pitchadj = Gtk.Adjustment(self.face.status.pitch,
+                                       espeak.PITCH_MIN, espeak.PITCH_MAX,
+                                       1, espeak.PITCH_MAX / 10, 0)
         pitchbar = Gtk.HScale.new(self.pitchadj)
         pitchbar.set_draw_value(False)
-        # pitchbar.set_inverted(True)
-        # pitchbar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
         pitchbar.set_size_request(240, 15)
 
         pitchbar_toolitem = ToolWidget(widget=pitchbar, label_text=_('Pitch:'))
         voicebar.insert(pitchbar_toolitem, -1)
 
-        self.rateadj = Gtk.Adjustment(self.face.status.rate, 0,
-                                      espeak.RATE_MAX,
+        self.rateadj = Gtk.Adjustment(self.face.status.rate,
+                                      espeak.RATE_MIN, espeak.RATE_MAX,
                                       1, espeak.RATE_MAX / 10, 0)
         ratebar = Gtk.HScale.new(self.rateadj)
         ratebar.set_draw_value(False)
-        # ratebar.set_inverted(True)
-        # ratebar.set_update_policy(Gtk.UPDATE_DISCONTINUOUS)
         ratebar.set_size_request(240, 15)
 
         ratebar_toolitem = ToolWidget(widget=ratebar, label_text=_('Rate:'))
