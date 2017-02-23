@@ -124,10 +124,6 @@ class Eye(Gtk.DrawingArea):
         self.context = context
         #self.context.set_antialias(cairo.ANTIALIAS_NONE)
 
-        #set a clip region for the expose event. This reduces redrawing work (and time)
-        ##self.context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-        ##self.context.clip()
-
         # background
         self.context.set_source_rgba(*self.fill_color.get_rgba())
         self.context.rectangle(0, 0, bounds.width, bounds.height)
