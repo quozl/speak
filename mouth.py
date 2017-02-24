@@ -23,6 +23,7 @@
 
 # This code is a super-stripped down version of the waveform view from Measure
 
+import sys
 import cairo
 from struct import unpack
 import numpy.core
@@ -45,6 +46,7 @@ class Mouth(Gtk.DrawingArea):
         self.fill_color = fill_color
 
         audioSource.connect("new-buffer", self._new_buffer)
+        print >>sys.stderr, 'Mouth.__init__'
 
     def _new_buffer(self, obj, buf):
         if len(buf) < 28:
@@ -57,6 +59,7 @@ class Mouth(Gtk.DrawingArea):
                         self.buffer_size)]
 
         self.queue_draw()
+        print >>sys.stderr, 'Mouth._new_buffer', len(buf)
         return True
 
     def processBuffer(self, bounds):
@@ -70,6 +73,7 @@ class Mouth(Gtk.DrawingArea):
         bounds = self.get_allocation()
 
         self.processBuffer(bounds)
+        print >>sys.stderr, 'Mouth.expose', repr(self.volume)
 
         # disable antialiasing
         cr.set_antialias(cairo.ANTIALIAS_NONE)
@@ -98,4 +102,4 @@ class Mouth(Gtk.DrawingArea):
         cr.close_path()
         cr.stroke()
 
-        return True
+        return False
