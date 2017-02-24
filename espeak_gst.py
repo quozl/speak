@@ -20,7 +20,7 @@ logger = logging.getLogger('speak')
 import local_espeak as espeak
 
 import gi
-gi.require_version("Gst", "3.0")
+gi.require_version("Gst", "1.0")
 
 from gi.repository import Gst
 
@@ -37,7 +37,7 @@ class AudioGrabGst(espeak.BaseAudioGrab):
                 if i.isalnum()]:
             return
 
-        self.make_pipeline('espeak name=espeak ! wavenc')
+        self.make_pipeline('espeak name=espeak ! autoaudiosink')
         src = self.pipeline.get_by_name('espeak')
 
         pitch = int(status.pitch) - 120
