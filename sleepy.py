@@ -22,13 +22,14 @@
 #     You should have received a copy of the GNU General Public License
 #     along with Speak.activity.  If not, see <http://www.gnu.org/licenses/>.
 
-from eye import *
-
 import gi
 gi.require_version("Gdk", "3.0")
 
 from gi.repository import Gdk
 from gi.repository import GdkPixbuf
+
+from eye import Eye
+from utils import svg_str_to_pixbuf
 
 
 class Sleepy(Eye):
@@ -56,15 +57,6 @@ class Sleepy(Eye):
         cr.fill()
 
         return True
-
-
-def svg_str_to_pixbuf(svg_string):
-    """ Load pixbuf from SVG string """
-    pl = GdkPixbuf.PixbufLoader.new_with_type('svg')
-    pl.write(svg_string)
-    pl.close()
-    pixbuf = pl.get_pixbuf()
-    return pixbuf
 
 
 def eye_svg():
