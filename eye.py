@@ -105,7 +105,7 @@ class Eye(Gtk.DrawingArea):
 
         return a.width / 2 + dx, a.height / 2 + dy
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         self.frame += 1
         bounds = self.get_allocation()
 
@@ -121,31 +121,28 @@ class Eye(Gtk.DrawingArea):
             pupilX = bounds.width / 2 + dX * limit / distance
             pupilY = bounds.height / 2 + dY * limit / distance
 
-        self.context = context
-        #self.context.set_antialias(cairo.ANTIALIAS_NONE)
-
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
         # eye ball
-        self.context.arc(bounds.width / 2, bounds.height / 2,
+        cr.arc(bounds.width / 2, bounds.height / 2,
                          eyeSize / 2 - outlineWidth / 2, 0, 2 * math.pi)
-        self.context.set_source_rgb(1, 1, 1)
-        self.context.fill()
+        cr.set_source_rgb(1, 1, 1)
+        cr.fill()
 
         # outline
-        self.context.set_line_width(outlineWidth)
-        self.context.arc(bounds.width / 2, bounds.height / 2,
+        cr.set_line_width(outlineWidth)
+        cr.arc(bounds.width / 2, bounds.height / 2,
                          eyeSize / 2 - outlineWidth / 2, 0, 2 * math.pi)
-        self.context.set_source_rgb(0, 0, 0)
-        self.context.stroke()
+        cr.set_source_rgb(0, 0, 0)
+        cr.stroke()
 
         # pupil
-        self.context.arc(pupilX, pupilY, pupilSize, 0, 2 * math.pi)
-        self.context.set_source_rgb(0, 0, 0)
-        self.context.fill()
+        cr.arc(pupilX, pupilY, pupilSize, 0, 2 * math.pi)
+        cr.set_source_rgb(0, 0, 0)
+        cr.fill()
 
         self.blink = False
 

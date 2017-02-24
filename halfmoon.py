@@ -37,7 +37,7 @@ class Halfmoon(Eye):
 
         self._pixbuf = svg_str_to_pixbuf(eye_svg())
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         bounds = self.get_allocation()
 
         eyeSize = min(bounds.width, bounds.height)
@@ -52,27 +52,25 @@ class Halfmoon(Eye):
             pupilX = bounds.width / 2 + dX * limit / distance
             pupilY = bounds.height / 2 + dY * limit / distance
 
-        self.context = context
-
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
         w = h = min(bounds.width, bounds.height)
         x = int((bounds.width - w) / 2)
         y = int((bounds.height - h) / 2)
         pixbuf = self._pixbuf.scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
-        self.context.translate(x + w / 2., y + h / 2.)
-        self.context.translate(-x - w / 2., -y - h / 2.)
-        Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
-        self.context.rectangle(x, y, w, h)
-        self.context.fill()
+        cr.translate(x + w / 2., y + h / 2.)
+        cr.translate(-x - w / 2., -y - h / 2.)
+        Gdk.cairo_set_source_pixbuf(cr, pixbuf, x, y)
+        cr.rectangle(x, y, w, h)
+        cr.fill()
 
         # pupil
-        self.context.arc(pupilX, pupilY, pupilSize, 0, 2*math.pi)
-        self.context.set_source_rgb(0, 0, 0)
-        self.context.fill()
+        cr.arc(pupilX, pupilY, pupilSize, 0, 2*math.pi)
+        cr.set_source_rgb(0, 0, 0)
+        cr.fill()
 
         return True
 

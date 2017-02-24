@@ -38,24 +38,23 @@ class WaveformMouth(Mouth):
         self.y_mag_bias_multiplier = 1
         self.y_mag = 0.7
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         """This function is the "expose" event handler and does all the drawing."""
 
         bounds = self.get_allocation()
         self.param1 = bounds.height/65536.0
         self.param2 = bounds.height/2.0
 
-        #Create context, disable antialiasing
-        self.context = context
-        self.context.set_antialias(cairo.ANTIALIAS_NONE)
+        # disable antialiasing
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
 
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0,0, bounds.width,bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0,0, bounds.width,bounds.height)
+        cr.fill()
 
         # Draw the waveform
-        self.context.set_line_width(min(bounds.height/10.0, 10))
+        cr.set_line_width(min(bounds.height/10.0, 10))
         count = 0
         buflen = float(len(self.main_buffers))
         for value in self.main_buffers:
@@ -67,10 +66,10 @@ class WaveformMouth(Mouth):
                 peak = 0
             
             x = count / buflen * bounds.width 
-            self.context.line_to(x,bounds.height - peak)
+            cr.line_to(x,bounds.height - peak)
             
             count += 1
-        self.context.set_source_rgb(0,0,0)
-        self.context.stroke()
+        cr.set_source_rgb(0,0,0)
+        cr.stroke()
 
         return True

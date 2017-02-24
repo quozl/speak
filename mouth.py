@@ -65,20 +65,19 @@ class Mouth(Gtk.DrawingArea):
         else:
             self.volume = numpy.core.max(self.main_buffers)  # - numpy.core.min(self.main_buffers)
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         """This function is the "expose" event handler and does all the drawing."""
         bounds = self.get_allocation()
 
         self.processBuffer(bounds)
 
-        #Create context, disable antialiasing
-        self.context = context
-        self.context.set_antialias(cairo.ANTIALIAS_NONE)
+        # disable antialiasing
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
 
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
         # Draw the mouth
         volume = self.volume / 30000.
@@ -91,12 +90,12 @@ class Mouth(Gtk.DrawingArea):
         Tx, Ty = bounds.width / 2, bounds.height / 2 - mouthH / 2
         Rx, Ry = bounds.width / 2 + mouthW / 2, bounds.height / 2
         Bx, By = bounds.width / 2, bounds.height / 2 + mouthH / 2
-        self.context.set_line_width(min(bounds.height / 10.0, 10))
-        self.context.move_to(Lx, Ly)
-        self.context.curve_to(Tx, Ty, Tx, Ty, Rx, Ry)
-        self.context.curve_to(Bx, By, Bx, By, Lx, Ly)
-        self.context.set_source_rgb(0, 0, 0)
-        self.context.close_path()
-        self.context.stroke()
+        cr.set_line_width(min(bounds.height / 10.0, 10))
+        cr.move_to(Lx, Ly)
+        cr.curve_to(Tx, Ty, Tx, Ty, Rx, Ry)
+        cr.curve_to(Bx, By, Bx, By, Lx, Ly)
+        cr.set_source_rgb(0, 0, 0)
+        cr.close_path()
+        cr.stroke()
 
         return True

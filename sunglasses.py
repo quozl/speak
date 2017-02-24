@@ -53,7 +53,7 @@ class Sunglasses(Eye):
             which_eye = 1
         self._which_eye = which_eye
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         bounds = self.get_allocation()
 
         eyeSize = min(bounds.width, bounds.height)
@@ -68,41 +68,39 @@ class Sunglasses(Eye):
             pupilX = bounds.width / 2 + dX * limit / distance
             pupilY = bounds.height / 2 + dY * limit / distance
 
-        self.context = context
-
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
         w = h = min(bounds.width, bounds.height)
         x = int((bounds.width - w) / 2)
         y = int((bounds.height - h) / 2)
         pixbuf = self._pixbufs[self._which_eye].scale_simple(
             w, h, GdkPixbuf.InterpType.BILINEAR)
-        self.context.translate(x + w / 2., y + h / 2.)
-        self.context.translate(-x - w / 2., -y - h / 2.)
+        cr.translate(x + w / 2., y + h / 2.)
+        cr.translate(-x - w / 2., -y - h / 2.)
 
         if self._which_eye == 0:
             x = bounds.width - w
             dx = x - int((bounds.width - w) / 2)
-            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
-            self.context.rectangle(x, y, w, h)
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, x, y)
+            cr.rectangle(x, y, w, h)
         elif self._which_eye == 2:
             dx = -x
-            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, 0, y)
-            self.context.rectangle(0, y, w, h)
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, y)
+            cr.rectangle(0, y, w, h)
         else:
             dx = 0
-            Gdk.cairo_set_source_pixbuf(self.context, pixbuf, x, y)
-            self.context.rectangle(x, y, w, h)
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, x, y)
+            cr.rectangle(x, y, w, h)
 
-        self.context.fill()
+        cr.fill()
 
         # pupil
-        self.context.arc(pupilX + dx, pupilY, pupilSize, 0, 2*math.pi)
-        self.context.set_source_rgb(255, 255, 255)
-        self.context.fill()
+        cr.arc(pupilX + dx, pupilY, pupilSize, 0, 2*math.pi)
+        cr.set_source_rgb(255, 255, 255)
+        cr.fill()
 
         return True
 

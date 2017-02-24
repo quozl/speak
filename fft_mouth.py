@@ -86,34 +86,33 @@ class FFTMouth(Mouth):
 
         self.peaks = val
 
-    def expose(self, widget, context):
+    def expose(self, widget, cr):
         """This function is the "expose" event handler and does all the drawing."""
 
         bounds = self.get_allocation()
 
         self.processBuffer(bounds)
 
-        #Create context, disable antialiasing
-        self.context = context
-        self.context.set_antialias(cairo.ANTIALIAS_NONE)
+        # disable antialiasing
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
 
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0,0, bounds.width,bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0,0, bounds.width,bounds.height)
+        cr.fill()
 
         # Draw the waveform
-        self.context.set_line_width(min(bounds.height/10.0, 10))
-        self.context.set_source_rgb(0,0,0)
+        cr.set_line_width(min(bounds.height/10.0, 10))
+        cr.set_source_rgb(0,0,0)
         count = 0
         for peak in self.peaks:
-            self.context.line_to(bounds.width/2 + count,bounds.height/2 - peak)
+            cr.line_to(bounds.width/2 + count,bounds.height/2 - peak)
             count += self.draw_interval
-        self.context.stroke()
+        cr.stroke()
         count = 0
         for peak in self.peaks:
-            self.context.line_to(bounds.width/2 - count,bounds.height/2 - peak)
+            cr.line_to(bounds.width/2 - count,bounds.height/2 - peak)
             count += self.draw_interval
-        self.context.stroke()
+        cr.stroke()
 
         return True
