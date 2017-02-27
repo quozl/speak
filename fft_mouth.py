@@ -23,7 +23,7 @@
 
 # This code is a stripped down version of the fft view from Measure
 
-from mouth import *
+from mouth import Mouth
 from math import ceil
 from numpy.fft import *
 

@@ -23,7 +23,7 @@
 
 # This code is a stripped down version of the waveform view from Measure
 
-from mouth import *
+from mouth import Mouth
 
 class WaveformMouth(Mouth):
     def __init__(self, audioSource, fill_color):
