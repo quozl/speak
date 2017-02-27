@@ -139,15 +139,19 @@ def _has_accelerometer():
 
 
 def _is_tablet_mode():
-    if not os.path.exists('/dev/input/event4'):
+    try:
+        fp = open('/dev/input/event4', 'rb')
+        fp.close()
+    except IOError:
         return False
+
     try:
         output = subprocess.call(
             ['evtest', '--query', '/dev/input/event4', 'EV_SW',
              'SW_TABLET_MODE'])
     except (OSError, subprocess.CalledProcessError):
         return False
-    if str(output) == '10':
+    if output == 10:
         return True
     return False
 
@@ -499,8 +503,6 @@ class SpeakActivity(activity.Activity):
             all_voices.append([voice_model.allVoices()[name], friendly_name])
 
         # A palette for the voice selection
-        logging.error(self.face.status.voice)
-
         self._voice_evboxes = {}
         self._voice_box = Gtk.HBox()
         vboxes = [Gtk.VBox(), Gtk.VBox(), Gtk.VBox()]
@@ -824,7 +826,7 @@ class SpeakActivity(activity.Activity):
             self.face.say_notification(_('mouth changed'))
 
     def _voices_changed_event_cb(self, widget, event, voice):
-        logging.error('voices_changed_event_cb %r %s' % (voice[0], voice[1]))
+        logging.debug('voices_changed_event_cb %r %s' % (voice[0], voice[1]))
         if self._mode == MODE_BOT:
             evboxes = self._brain_evboxes
         else:
@@ -1003,10 +1005,10 @@ class SpeakActivity(activity.Activity):
 
     def _set_voice(self, new_voice=None):
         if new_voice is not None:
-            logging.error('set_voice %r' % new_voice)
+            logging.debug('set_voice %r' % new_voice)
             self.face.status.voice = new_voice
         else:
-            logging.error('set_voice to current voice %s' %
+            logging.debug('set_voice to current voice %s' %
                           self._current_voice[1])
             self.face.status.voice = self._current_voice[0]
 
@@ -1107,7 +1109,7 @@ class SpeakActivity(activity.Activity):
         self._set_voice()
 
     def _shared_cb(self, sender):
-        logging.error('SHARED A CHAT')
+        logging.debug('SHARED A CHAT')
         self._setup_text_channel()
 
     def _joined_cb(self, sender):
@@ -1148,7 +1150,7 @@ class SpeakActivity(activity.Activity):
         pass
 
     def _setup_text_channel(self):
-        logging.error('_SETUP_TEXTCHANNEL')
+        logging.debug('_SETUP_TEXTCHANNEL')
         self.text_channel = TextChannelWrapper(
             self.shared_activity.telepathy_text_chan,
             self.shared_activity.telepathy_conn)
@@ -1163,7 +1165,7 @@ class SpeakActivity(activity.Activity):
         '''Show a buddy who joined'''
         if buddy == self.owner:
             return
-        logging.error('%s joined the chat (%r)' % (buddy.props.nick, buddy))
+        logging.debug('%s joined the chat (%r)' % (buddy.props.nick, buddy))
         self._chat.post(
             buddy, _('%s joined the chat') % buddy.props.nick,
             status_message=True)
@@ -1172,7 +1174,7 @@ class SpeakActivity(activity.Activity):
         '''Show a buddy who joined'''
         if buddy == self.owner:
             return
-        logging.error('%s left the chat (%r)' % (buddy.props.nick, buddy))
+        logging.debug('%s left the chat (%r)' % (buddy.props.nick, buddy))
         self._chat.post(
             buddy, _('%s left the chat') % buddy.props.nick,
             status_message=True)
@@ -1182,7 +1184,7 @@ class SpeakActivity(activity.Activity):
         '''Show a buddy already in the chat.'''
         if buddy == self.owner:
             return
-        logging.error('%s is here (%r)' % (buddy.props.nick, buddy))
+        logging.debug('%s is here (%r)' % (buddy.props.nick, buddy))
         self._chat.post(
             buddy, _('%s is here') % buddy.props.nick,
             status_message=True)
@@ -1290,13 +1292,13 @@ class TextChannelWrapper(object):
                 nick = self._conn[
                     CONN_INTERFACE_ALIASING].RequestAliases([sender])[0]
                 buddy = {'nick': nick, 'color': '#000000,#808080'}
-                logging.error('Exception: recieved from sender %r buddy %r' %
+                logging.error('Exception: received from sender %r buddy %r' %
                               (sender, buddy))
             else:
                 # Normal sugar MUC chat
                 # XXX: cache these
                 buddy = self._get_buddy(sender)
-                logging.error('Else: recieved from sender %r buddy %r' %
+                logging.error('Else: received from sender %r buddy %r' %
                               (sender, buddy))
             self._activity_cb(buddy, text)
             self._text_chan[

@@ -59,15 +59,19 @@ def _lighter_color(colors):
 
 
 def _is_tablet_mode():
-    if not os.path.exists('/dev/input/event4'):
+    try:
+        fp = open('/dev/input/event4', 'rb')
+        fp.close()
+    except IOError:
         return False
+
     try:
         output = subprocess.call(
             ['evtest', '--query', '/dev/input/event4', 'EV_SW',
              'SW_TABLET_MODE'])
     except (OSError, subprocess.CalledProcessError):
         return False
-    if str(output) == '10':
+    if output == 10:
         return True
     return False
 
