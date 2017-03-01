@@ -86,7 +86,7 @@ import chat
 
 from faceselect import FaceSelector
 
-import local_espeak as espeak
+import espeak
 
 SERVICE = 'org.sugarlabs.Speak'
 IFACE = SERVICE

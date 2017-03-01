@@ -22,13 +22,15 @@ import gi
 gi.require_version("Gst", "1.0")
 
 from gi.repository import Gst
-
 from gi.repository import GObject
 
 import logging
 logger = logging.getLogger('speak')
 
-supported = True
+PITCH_MIN = 0
+PITCH_MAX = 200
+RATE_MIN = 0
+RATE_MAX = 200
 
 
 class BaseAudioGrab(GObject.GObject):
@@ -50,11 +52,11 @@ class BaseAudioGrab(GObject.GObject):
             return
 
         self.pipeline.set_state(Gst.State.NULL)
-        GObject.timeout_add(10, self._new_buffer, '')
+        self.emit("new-buffer", '')
 
         self.pipeline = None
 
-    def make_pipeline(self, cmd):
+    def make_pipeline(self):
         if self.pipeline is not None:
             self.stop_sound_device()
             del self.pipeline
@@ -76,9 +78,9 @@ class BaseAudioGrab(GObject.GObject):
                 return True
 
             data = data_buffer.extract_dup(0, size)
-            #print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer size=%r' % \
-            #    (time.time(), size)
-            GObject.timeout_add(10, self._new_buffer, data)
+            print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer size=%r pts=%r duration=%r' %  (time.time(), size, data_buffer.pts, data_buffer.duration)
+            self.emit("new-buffer", data)
+            #GObject.timeout_add(10, self._new_buffer, data)
             return True
 
         sink = self.pipeline.get_by_name('sink')
@@ -108,13 +110,38 @@ class BaseAudioGrab(GObject.GObject):
         bus.add_signal_watch()
         bus.connect('message', gst_message_cb)
 
-    def _new_buffer(self, buf):
-        #print >>sys.stderr, '%.3f BaseAudioGrab._new_buffer size=%r' % \
-        #    (time.time(), len(buf))
-        # pass captured audio to everyone who is interested
-        self.emit("new-buffer", buf)
-        return False
+
+class AudioGrab(BaseAudioGrab):
+    def speak(self, status, text):
+        print >>sys.stderr, '%.3f AudioGrab.__init__ %r' % (time.time(), text)
+        # XXX workaround for http://bugs.sugarlabs.org/ticket/1801
+        if not [i for i in unicode(text, 'utf-8', errors='ignore') \
+                if i.isalnum()]:
+            return
+
+        self.make_pipeline()
+        src = self.pipeline.get_by_name('espeak')
+
+        pitch = int(status.pitch) - 120
+        rate = int(status.rate) - 120
+
+        logger.debug('pitch=%d rate=%d voice=%s text=%s' % (pitch, rate,
+                status.voice.name, text))
+
+        src.props.pitch = pitch
+        src.props.rate = rate
+        src.props.voice = status.voice.name
+        src.props.track = 1
+        src.props.text = text
+
+        self.restart_sound_device()
 
 
-from espeak_gst import AudioGrabGst as AudioGrab
-from espeak_gst import *
+def voices():
+    out = []
+
+    for i in Gst.ElementFactory.make('espeak').props.voices:
+        name, language, dialect = i
+        out.append((language, name))
+
+    return out
