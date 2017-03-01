@@ -26,8 +26,6 @@
 import sys
 import time
 import cairo
-from struct import unpack
-import numpy.core
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -44,55 +42,29 @@ class Mouth(Gtk.DrawingArea):
 
         def __realize_cb(widget):
             #print >>sys.stderr, '%.3f Mouth.__realize_cb' % (time.time())
-            widget.connect("draw", self.__expose_cb)
+            widget.connect("draw", self.__draw_cb)
         self.connect("realize", __realize_cb)
 
-        self.volume = 0
-        self.buffer = []
-        self.bytes = 2756
+        self._volume = 0
         self.fill_color = fill_color
 
         self._audio = audio
-        self._new_buffer_hid = self._audio.connect("new-buffer",
-                                                   self.__new_buffer_cb)
-        GObject.timeout_add(100, self.__timeout_cb)
+        self._peak_hid = self._audio.connect("peak", self.__peak_cb)
 
     def disconnect_audio(self):
         #print >>sys.stderr, '%.3f Mouth.disconnect_audio' % (time.time())
-        self._audio.disconnect(self._new_buffer_hid)
-        self._new_buffer_hid = None
+        self._audio.disconnect(self._peak_hid)
+        self._peak_hid = None
 
-    def __new_buffer_cb(self, obj, buf):
-        # accumulate buffer and dequeue at 22050 bps
-        if len(buf) > 0:
-            mine = list(unpack(str(len(buf) / 2) + 'h', buf))
-            self.buffer += mine
-            #print >>sys.stderr, '%.3f Mouth.__new_buffer_cb total=%r' % \
-            #    (time.time(), len(self.buffer))
-        else:
-            self.volume = 0
-            #print >>sys.stderr, '%.3f Mouth.__new_buffer_cb stop' % \
-            #    (time.time())
-            self.queue_draw()
-
-    def __timeout_cb(self):
-        if len(self.buffer) < self.bytes:
-            return True
-
-        chunk = self.buffer[0:self.bytes]
-        del self.buffer[0:self.bytes]
-
-        self.volume = numpy.core.max(chunk)
+    def __peak_cb(self, me, volume):
+        #print >>sys.stderr, '%.3f Mouth.__peak_cb %r' % (time.time(), volume)
+        self._volume = volume
         self.queue_draw()
-        #print >>sys.stderr, '%.3f Mouth.__timeout_cb volume=%r total=%r' % \
-        #    (time.time(), self.volume, len(self.buffer))
 
-        return True
+    def __draw_cb(self, widget, cr):
+        #print >>sys.stderr, '%.3f Mouth.__draw_cb volume=%r' % \
+        #    (time.time(), self._volume)
 
-    def __expose_cb(self, widget, cr):
-        """This function is the "expose" event handler and does all the drawing."""
-        #print >>sys.stderr, '%.3f Mouth.__expose_cb volume=%r' % \
-        #    (time.time(), self.volume)
         bounds = self.get_allocation()
 
         # disable antialiasing
@@ -104,11 +76,11 @@ class Mouth(Gtk.DrawingArea):
         cr.fill()
 
         # Draw the mouth
-        volume = self.volume / 30000.
+        volume = self._volume / 30000.
         mouthH = volume * bounds.height
         mouthW = volume**2 * (bounds.width / 2.) + bounds.width / 2.
         #        T
-        #  L          R
+        #  L           R
         #        B
         Lx, Ly = bounds.width / 2 - mouthW / 2, bounds.height / 2
         Tx, Ty = bounds.width / 2, bounds.height / 2 - mouthH / 2

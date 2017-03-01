@@ -17,6 +17,7 @@
 import sys
 import time
 import subprocess
+import numpy
 
 import gi
 gi.require_version("Gst", "1.0")
@@ -35,7 +36,7 @@ RATE_MAX = 200
 
 class BaseAudioGrab(GObject.GObject):
     __gsignals__ = {
-        'new-buffer': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT])
+        'peak': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT])
     }
 
     def __init__(self):
@@ -52,7 +53,7 @@ class BaseAudioGrab(GObject.GObject):
             return
 
         self.pipeline.set_state(Gst.State.NULL)
-        self.emit("new-buffer", '')
+        self.emit("peak", 0)
 
         self.pipeline = None
 
@@ -65,27 +66,83 @@ class BaseAudioGrab(GObject.GObject):
         # and sends it to both the audio output
         # and a fake one that we use to draw from
         self.pipeline = Gst.parse_launch('espeak name=espeak' \
+            ' ! capsfilter name=caps' \
             ' ! tee name=me' \
-            ' me.! queue ! autoaudiosink' \
+            ' me.! queue ! autoaudiosink name=ears' \
             ' me.! queue ! fakesink name=sink')
 
-        def on_buffer(element, data_buffer, pad):
-            # we got a new buffer of data
-            size = data_buffer.get_size()
-            if size == 0:
-                #print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer' % \
-                #    (time.time())
-                return True
+        # force a sample bit width to match our numpy code below
+        caps = self.pipeline.get_by_name('caps')
+        want = 'audio/x-raw,channels=(int)1,depth=(int)16'
+        caps.set_property('caps', Gst.caps_from_string(want))
 
-            data = data_buffer.extract_dup(0, size)
-            print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer size=%r pts=%r duration=%r' %  (time.time(), size, data_buffer.pts, data_buffer.duration)
-            self.emit("new-buffer", data)
-            #GObject.timeout_add(10, self._new_buffer, data)
+        # grab reference to the output element for scheduling mouth moves
+        ears = self.pipeline.get_by_name('ears')
+
+        def handoff(element, data, pad):
+            size = data.get_size()
+            if size == 0:
+                return True  # common
+
+            npc = 50000000  # nanoseconds per chunk
+            bpc = size * npc / data.duration  # bytes per chunk
+            bpc = bpc / 2 * 2  # force alignment for int16
+
+            #print >>sys.stderr, '%.3f handoff size=%r pts=%r duration=%r npc=%r bpc=%r' % (time.time(), size, data.pts, data.duration, npc, bpc)
+
+            p = []
+            w = []
+
+            here = 0  # offset in bytes
+            when = data.pts
+            last = data.pts + data.duration
+            while True:
+                chop = numpy.fromstring(data.extract_dup(here, bpc), 'int16')
+                peak = numpy.core.max(chop)
+
+                #print >>sys.stderr, '%.3f sq when=%r here=%r chop=%r peak=%r' % (time.time(), when, here, len(chop), peak)
+
+                p.append(peak)
+                w.append(when)
+
+                here += bpc
+                when += npc
+                if when > last:
+                    break
+
+            def poke(pts):
+                success, position = ears.query_position(Gst.Format.TIME)
+                if not success:
+                    #print >>sys.stderr, '%.3f poke no position' % (time.time())
+                    return False
+
+                #print >>sys.stderr, '%.3f poke pts=%r position=%r' % (time.time(), pts, position)
+
+                if len(w) == 0:
+                    #print >>sys.stderr, '%.3f poke no more' % (time.time())
+                    return False
+
+                if position < w[0]:
+                    #print >>sys.stderr, '%.3f poke not yet' % (time.time())
+                    return True
+
+                self.emit("peak", p[0])
+                del w[0]
+                del p[0]
+
+                if len(w) > 0:
+                    return True
+
+                #print >>sys.stderr, '%.3f poke no more' % (time.time())
+                return False
+
+            GObject.timeout_add(25, poke, data.pts)
+
             return True
 
         sink = self.pipeline.get_by_name('sink')
         sink.props.signal_handoffs = True
-        sink.connect('handoff', on_buffer)
+        sink.connect('handoff', handoff)
 
         def gst_message_cb(bus, message):
             self._was_message = True
