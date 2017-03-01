@@ -15,13 +15,13 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import sys
+import time
 import subprocess
 
 import gi
 gi.require_version("Gst", "1.0")
 
 from gi.repository import Gst
-Gst.init([])
 
 from gi.repository import GObject
 
@@ -39,23 +39,20 @@ class BaseAudioGrab(GObject.GObject):
     def __init__(self):
         GObject.GObject.__init__(self)
         self.pipeline = None
-        self.quiet = True
 
     def restart_sound_device(self):
-        self.quiet = False
-
         self.pipeline.set_state(Gst.State.NULL)
         self.pipeline.set_state(Gst.State.PLAYING)
 
     def stop_sound_device(self):
+        #print >>sys.stderr, '%.3f BaseAudioGrab.stop_sound_device' % (time.time())
         if self.pipeline is None:
             return
 
         self.pipeline.set_state(Gst.State.NULL)
-        # Shut theirs mouths down
         GObject.timeout_add(10, self._new_buffer, '')
 
-        self.quiet = True
+        self.pipeline = None
 
     def make_pipeline(self, cmd):
         if self.pipeline is not None:
@@ -66,16 +63,21 @@ class BaseAudioGrab(GObject.GObject):
         # and sends it to both the audio output
         # and a fake one that we use to draw from
         self.pipeline = Gst.parse_launch('espeak name=espeak' \
-            ' caps="audio/x-raw, format=(string)S16LE, channels=(int)1"' \
             ' ! tee name=me' \
             ' me.! queue ! autoaudiosink' \
             ' me.! queue ! fakesink name=sink')
 
         def on_buffer(element, data_buffer, pad):
-            # we got a new buffer of data, ask for another
+            # we got a new buffer of data
             size = data_buffer.get_size()
+            if size == 0:
+                #print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer' % \
+                #    (time.time())
+                return True
+
             data = data_buffer.extract_dup(0, size)
-            print >>sys.stderr, 'on_buffer', size
+            #print >>sys.stderr, '%.3f BaseAudioGrab.on_buffer size=%r' % \
+            #    (time.time(), size)
             GObject.timeout_add(10, self._new_buffer, data)
             return True
 
@@ -84,7 +86,6 @@ class BaseAudioGrab(GObject.GObject):
         sink.connect('handoff', on_buffer)
 
         def gst_message_cb(bus, message):
-            print >>sys.stderr, 'gst_message_cb'
             self._was_message = True
 
             if message.type == Gst.MessageType.WARNING:
@@ -98,6 +99,7 @@ class BaseAudioGrab(GObject.GObject):
                 GObject.timeout_add(500, check_after_warnings)
 
             elif message.type in (Gst.MessageType.EOS, Gst.MessageType.ERROR):
+                #print >>sys.stderr, '%.3f EOS' % (time.time())
                 logger.debug(message.type)
                 self.stop_sound_device()
 
@@ -107,25 +109,12 @@ class BaseAudioGrab(GObject.GObject):
         bus.connect('message', gst_message_cb)
 
     def _new_buffer(self, buf):
-        print >>sys.stderr, 'BaseAudioGrab._new_buffer'
-        if not self.quiet:
-            # pass captured audio to anyone who is interested
-            self.emit("new-buffer", buf)
+        #print >>sys.stderr, '%.3f BaseAudioGrab._new_buffer size=%r' % \
+        #    (time.time(), len(buf))
+        # pass captured audio to everyone who is interested
+        self.emit("new-buffer", buf)
         return False
 
-# load proper espeak plugin
 
-try:
-    from gi.repository import Gst
-    Gst.ElementFactory.make('espeak')
-    from espeak_gst import AudioGrabGst as AudioGrab
-    from espeak_gst import *
-    logger.info('use gst-plugins-espeak')
-except Exception, e:
-    logger.info('disable gst-plugins-espeak: %s' % e)
-    if subprocess.call('which espeak', shell=True) == 0:
-        from espeak_cmd import AudioGrabCmd as AudioGrab
-        from espeak_cmd import *
-    else:
-        logger.info('disable espeak_cmd')
-        supported = False
+from espeak_gst import AudioGrabGst as AudioGrab
+from espeak_gst import *

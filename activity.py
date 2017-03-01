@@ -40,11 +40,16 @@ from gettext import gettext as _
 
 import gi
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gst", "1.0")
 
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import Pango
 from gi.repository import GObject
+from gi.repository import Gst
+
+GObject.threads_init()
+Gst.init(None)
 
 from sugar3.activity import activity
 from sugar3.presence import presenceservice
@@ -1394,7 +1399,3 @@ class ToolWidget(Gtk.ToolItem):
         widget.show()
 
     widget = GObject.property(getter=get_widget, setter=set_widget)
-
-
-# activate Gtk threads when this module loads
-Gdk.threads_init()

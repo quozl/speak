@@ -209,6 +209,8 @@ class View(Gtk.EventBox):
                 self._eyebox.pack_start(eye, True, True, 0)
             eye.show()
 
+        if self._mouth is not None:
+            self._mouth.disconnect_audio()
         self._mouth = status.mouth(self._audio, self.fill_color)
         self._mouth.show()
         self._mouthbox.add(self._mouth)

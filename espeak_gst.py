@@ -14,6 +14,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import sys
+import time
 import logging
 logger = logging.getLogger('speak')
 
@@ -32,6 +34,7 @@ RATE_MAX = 200
 
 class AudioGrabGst(espeak.BaseAudioGrab):
     def speak(self, status, text):
+        print >>sys.stderr, '%.3f AudioGrabGst.__init__ %r' % (time.time(), text)
         # XXX workaround for http://bugs.sugarlabs.org/ticket/1801
         if not [i for i in unicode(text, 'utf-8', errors='ignore') \
                 if i.isalnum()]:
@@ -49,6 +52,7 @@ class AudioGrabGst(espeak.BaseAudioGrab):
         src.props.pitch = pitch
         src.props.rate = rate
         src.props.voice = status.voice.name
+        src.props.track = 1
         src.props.text = text
 
         self.restart_sound_device()
@@ -59,9 +63,6 @@ def voices():
 
     for i in Gst.ElementFactory.make('espeak').props.voices:
         name, language, dialect = i
-        #if name in ('en-rhotic','english_rp','english_wmids'):
-            # these voices don't produce sound
-         #   continue
         out.append((language, name))
 
     return out
