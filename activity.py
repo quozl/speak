@@ -971,7 +971,7 @@ class SpeakActivity(activity.Activity):
                 self._entrycombo.append_text(text)
                 # don't let the history get too big
                 while len(history) > 20:
-                    self._entrycombo.remove_text(0)
+                    self._entrycombo.remove(0)
                 # select the new item
                 self._entrycombo.set_active(len(history) - 1)
         if text:
