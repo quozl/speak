@@ -170,7 +170,7 @@ class BaseAudioGrab(GObject.GObject):
 
 class AudioGrab(BaseAudioGrab):
     def speak(self, status, text):
-        print >>sys.stderr, '%.3f AudioGrab.__init__ %r' % (time.time(), text)
+        #print >>sys.stderr, '%.3f AudioGrab.__init__ %r' % (time.time(), text)
         # XXX workaround for http://bugs.sugarlabs.org/ticket/1801
         if not [i for i in unicode(text, 'utf-8', errors='ignore') \
                 if i.isalnum()]:
@@ -197,7 +197,7 @@ class AudioGrab(BaseAudioGrab):
 def voices():
     out = []
 
-    for i in Gst.ElementFactory.make('espeak').props.voices:
+    for i in Gst.ElementFactory.make('espeak', 'espeak').props.voices:
         name, language, dialect = i
         out.append((language, name))
 
