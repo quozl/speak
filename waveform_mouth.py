@@ -23,6 +23,7 @@
 
 # This code is a stripped down version of the waveform view from Measure
 
+import cairo
 from mouth import Mouth
 
 class WaveformMouth(Mouth):
