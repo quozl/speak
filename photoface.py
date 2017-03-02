@@ -28,15 +28,21 @@ import logging
 import cStringIO
 from struct import unpack
 
-import gtk
 import numpy.core
-import sugar.graphics.style as style
+import sugar3.graphics.style as style
 
 import voice
-import local_espeak as espeak
+import espeak
 from faceselect import Eye
 from faceselect import Mouth
 from face import remove_curses
+
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
 
 logger = logging.getLogger('speak')
 
@@ -51,7 +57,7 @@ def _b64_to_pixbuf(b64):
 
     with open(path, 'wb') as f:
         f.write(data)
-    pixbuf = gtk.gdk.pixbuf_new_from_file(path)
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
 
     os.remove(path)
     return pixbuf
@@ -123,10 +129,10 @@ class Status(object):
         return [self.pixbuf, self.left_eye, self.right_eye, self.mouth]
 
 
-class View(gtk.DrawingArea):
+class View(Gtk.DrawingArea):
     def __init__(self, pixbuf, left_eye, right_eye, mouth,
                  fill_color=style.COLOR_BUTTON_GREY):
-        gtk.DrawingArea.__init__(self)
+        Gtk.DrawingArea.__init__(self)
 
 
         self.status = Status()
@@ -145,14 +151,10 @@ class View(gtk.DrawingArea):
         self._look_y = None
 
         self._audio = espeak.AudioGrab()
-        self._audio.connect('new-buffer', self.__new_buffer_cb)
+        self._audio.connect('peak', self.__peak_cb)
         self._pending = None
 
         self.connect('expose-event', self.__draw_cb)
-
-    def _redraw(self):
-        alloc = self.get_allocation()
-        self.queue_draw_area(0, 0, alloc.width, alloc.height)
 
     def __draw_cb(self, widget, cr):
         cr = widget.window.cairo_create()
@@ -172,7 +174,6 @@ class View(gtk.DrawingArea):
         cr.fill()
 
         # Mouth
-        self._process_buffer()
         volume = min(self._volume / 30000.0, 1.0)
 
         # Draw a background for when the mouth moves
@@ -241,25 +242,9 @@ class View(gtk.DrawingArea):
 
         return dx + EYE_X, dy + EYE_Y, CIRC
 
-    def _process_buffer(self):
-        if len(self._main_buffers) == 0 or len(self._newest_buffer) == 0:
-            self._volume = 0
-        else:
-            self._volume = numpy.core.max(self._main_buffers)
-
-    def __new_buffer_cb(self, obj, buf):
-        if len(buf) < 28:
-            self._newest_buffer = []
-        else:
-            self._newest_buffer = list(
-                unpack(str(int(len(buf)) / 2) + 'h', buf))
-            self._main_buffers += self._newest_buffer
-            if(len(self._main_buffers) > self._buffer_size):
-                del self._main_buffers[0:(len(self._main_buffers) - \
-                        self._buffer_size)]
-
-        self._redraw()
-        return True
+    def __peak_cb(self, me, volume):
+        self._volume = volume
+        self.queue_draw()
 
     def set_border_state(self, state):
         pass
@@ -267,16 +252,15 @@ class View(gtk.DrawingArea):
     def look_ahead(self):
         self._look_x = None
         self._look_y = None
-        self._redraw()
+        self.queue_draw()
 
     def look_at(self, pos=None):
         if pos is None:
-            display = gtk.gdk.display_get_default()
+            display = Gdk.Display.get_default()
             screen, self._look_x, self._look_y, mods = display.get_pointer()
         else:
             self._look_x, self._look_y = pos
-        self._redraw()
-        
+        self.queue_draw()
 
     def update(self, status=None):
         pass

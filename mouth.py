@@ -23,80 +23,83 @@
 
 # This code is a super-stripped down version of the waveform view from Measure
 
-import gtk
+import sys
+import time
 import cairo
-from struct import unpack
-import numpy.core
+
+import gi
+gi.require_version("Gtk", "3.0")
+
+from gi.repository import Gtk
+from gi.repository import GObject
 
 
-class Mouth(gtk.DrawingArea):
-    def __init__(self, audioSource, fill_color):
+class Mouth(Gtk.DrawingArea):
+    def __init__(self, audio, fill_color):
 
-        gtk.DrawingArea.__init__(self)
-        self.connect("expose_event", self.expose)
-        self.buffers = []
-        self.buffer_size = 256
-        self.main_buffers = []
-        self.newest_buffer = []
+        #print >>sys.stderr, '%.3f Mouth.__init__' % (time.time())
+        Gtk.DrawingArea.__init__(self)
+
         self.fill_color = fill_color
+        self.audio = audio
 
-        audioSource.connect("new-buffer", self._new_buffer)
+        def realize_cb(widget):
+            #print >>sys.stderr, '%.3f Mouth.realize_cb' % (time.time())
+            widget.connect("draw", self.draw_cb)
+        self.connect("realize", realize_cb)
 
-    def _new_buffer(self, obj, buf):
-        if len(buf) < 28:
-            self.newest_buffer = []
-        else:
-            self.newest_buffer = list(unpack(str(int(len(buf)) / 2) + 'h', buf))
-            self.main_buffers += self.newest_buffer
-            if(len(self.main_buffers) > self.buffer_size):
-                del self.main_buffers[0:(len(self.main_buffers) - \
-                        self.buffer_size)]
+    def stop(self):
+        #print >>sys.stderr, '%.3f Mouth.stop' % (time.time())
+        self.audio.disconnect_all()
+        self.audio = None
 
+class PeakMouth(Mouth):
+
+    def __init__(self, audio, fill_color):
+        Mouth.__init__(self, audio, fill_color)
+        audio.connect_peak(self.__peak_cb)
+        audio.connect_idle(self.__idle_cb)
+        self.volume = 0
+
+    def __peak_cb(self, me, volume):
+        #print >>sys.stderr, '%.3f Mouth.__peak_cb %r' % (time.time(), volume)
+        self.volume = volume
         self.queue_draw()
-        return True
 
-    def processBuffer(self, bounds):
-        if len(self.main_buffers) == 0 or len(self.newest_buffer) == 0:
-            self.volume = 0
-        else:
-            self.volume = numpy.core.max(self.main_buffers)  # - numpy.core.min(self.main_buffers)
+    def __idle_cb(self, me):
+        #print >>sys.stderr, '%.3f Mouth.__idle_cb %r' % (time.time(), volume)
+        self.volume = 0
+        self.queue_draw()
 
-    def expose(self, widget, event):
-        """This function is the "expose" event handler and does all the drawing."""
+    def draw_cb(self, widget, cr):
+        #print >>sys.stderr, '%.3f Mouth.draw_cb volume=%r' % \
+        #    (time.time(), self._volume)
+
         bounds = self.get_allocation()
 
-        self.processBuffer(bounds)
-
-        #Create context, disable antialiasing
-        self.context = widget.window.cairo_create()
-        self.context.set_antialias(cairo.ANTIALIAS_NONE)
-
-        #set a clip region for the expose event. This reduces redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
-        self.context.clip()
+        # disable antialiasing
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
 
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
-        # Draw the mouth
+        # draw the mouth
         volume = self.volume / 30000.
         mouthH = volume * bounds.height
-        mouthW = volume**2 * (bounds.width / 2.) + bounds.width / 2.
+        mouthW = volume ** 2 * (bounds.width / 2.) + bounds.width / 2.
         #        T
-        #  L          R
+        #  L           R
         #        B
         Lx, Ly = bounds.width / 2 - mouthW / 2, bounds.height / 2
         Tx, Ty = bounds.width / 2, bounds.height / 2 - mouthH / 2
         Rx, Ry = bounds.width / 2 + mouthW / 2, bounds.height / 2
         Bx, By = bounds.width / 2, bounds.height / 2 + mouthH / 2
-        self.context.set_line_width(min(bounds.height / 10.0, 10))
-        self.context.move_to(Lx, Ly)
-        self.context.curve_to(Tx, Ty, Tx, Ty, Rx, Ry)
-        self.context.curve_to(Bx, By, Bx, By, Lx, Ly)
-        self.context.set_source_rgb(0, 0, 0)
-        self.context.close_path()
-        self.context.stroke()
-
-        return True
+        cr.set_line_width(min(bounds.height / 10.0, 10))
+        cr.move_to(Lx, Ly)
+        cr.curve_to(Tx, Ty, Tx, Ty, Rx, Ry)
+        cr.curve_to(Bx, By, Bx, By, Lx, Ly)
+        cr.set_source_rgb(0, 0, 0)
+        cr.close_path()
+        cr.stroke()

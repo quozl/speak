@@ -22,7 +22,14 @@
 #     You should have received a copy of the GNU General Public License
 #     along with Speak.activity.  If not, see <http://www.gnu.org/licenses/>.
 
-from eye import *
+import gi
+gi.require_version("Gdk", "3.0")
+
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+
+from eye import Eye
+from utils import svg_str_to_pixbuf
 
 
 class Sleepy(Eye):
@@ -31,42 +38,25 @@ class Sleepy(Eye):
 
         self._pixbuf = svg_str_to_pixbuf(eye_svg())
 
-    def expose(self, widget, event):
+    def expose(self, widget, cr):
         bounds = self.get_allocation()
 
-        self.context = widget.window.cairo_create()
-
-        #set a clip region for the expose event. This reduces
-        #redrawing work (and time)
-        self.context.rectangle(event.area.x, event.area.y,
-                               event.area.width, event.area.height)
-        self.context.clip()
-
         # background
-        self.context.set_source_rgba(*self.fill_color.get_rgba())
-        self.context.rectangle(0, 0, bounds.width, bounds.height)
-        self.context.fill()
+        cr.set_source_rgba(*self.fill_color.get_rgba())
+        cr.rectangle(0, 0, bounds.width, bounds.height)
+        cr.fill()
 
         w = h = min(bounds.width, bounds.height)
         x = int((bounds.width - w) / 2)
         y = int((bounds.height - h) / 2)
-        pixbuf = self._pixbuf.scale_simple(w, h, gtk.gdk.INTERP_BILINEAR)
-        self.context.translate(x + w / 2., y + h / 2.)
-        self.context.translate(-x - w / 2., -y - h / 2.)
-        self.context.set_source_pixbuf(pixbuf, x, y)
-        self.context.rectangle(x, y, w, h)
-        self.context.fill()
+        pixbuf = self._pixbuf.scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
+        cr.translate(x + w / 2., y + h / 2.)
+        cr.translate(-x - w / 2., -y - h / 2.)
+        Gdk.cairo_set_source_pixbuf(cr, pixbuf, x, y)
+        cr.rectangle(x, y, w, h)
+        cr.fill()
 
         return True
-
-
-def svg_str_to_pixbuf(svg_string):
-    """ Load pixbuf from SVG string """
-    pl = gtk.gdk.PixbufLoader('svg')
-    pl.write(svg_string)
-    pl.close()
-    pixbuf = pl.get_pixbuf()
-    return pixbuf
 
 
 def eye_svg():

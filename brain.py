@@ -17,16 +17,21 @@
 #     You should have received a copy of the GNU General Public License
 #     along with HablarConSara.activity.  If not, see <http://www.gnu.org/licenses/>.
 
-import gtk
-import gobject
-import gconf
 import time
 from gettext import gettext as _
+
+import gi
+gi.require_version("Gdk", "3.0")
+gi.require_version('GConf', '2.0')
+
+from gi.repository import Gdk
+from gi.repository import GConf
+from gi.repository import GObject
 
 import logging
 logger = logging.getLogger('speak')
 
-from sugar import profile
+from sugar3 import profile
 
 import aiml
 import voice
@@ -61,7 +66,7 @@ _kernel_voice = None
 
 
 def _get_age():
-    client = gconf.client_get_default()
+    client = GConf.Client.get_default()
     birth_timestamp = client.get_int('/desktop/sugar/user/birth_timestamp')
     if birth_timestamp == None or birth_timestamp == 0:
         return 8
@@ -94,7 +99,7 @@ def load(activity, voice, sorry=None):
         return False
 
     old_cursor = activity.get_window().get_cursor()
-    activity.get_window().set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+    activity.get_window().set_cursor(Gdk.Cursor(Gdk.CursorType.WATCH))
 
     def load_brain():
         global _kernel
@@ -146,5 +151,5 @@ def load(activity, voice, sorry=None):
         elif sorry:
             activity.face.say_notification(sorry)
 
-    gobject.idle_add(load_brain)
+    GObject.idle_add(load_brain)
     return True
