@@ -46,24 +46,24 @@ class BaseAudioGrab(GObject.GObject):
         self.pipeline = None
 
         self._cb = {}
-        for cb in self.__gsignals__:
-            self._cb[cb] = [None, None]
+        for cb in ['peak', 'wave', 'idle']:
+            self._cb[cb] = None
 
     def disconnect_all(self):
-        for cb in self.__gsignals__:
-            cb, hid = self._cb[cb]
+        for cb in ['peak', 'wave', 'idle']:
+            hid = self._cb[cb]
             if hid is not None:
                 self.disconnect(hid)
-                self._cb[cb] = [None, None]
+                self._cb[cb] = None
 
     def connect_peak(self, cb):
-        self._cb['peak'] = (cb, self.connect('peak', cb))
+        self._cb['peak'] = self.connect('peak', cb)
 
     def connect_wave(self, cb):
-        self._cb['wave'] = (cb, self.connect('wave', cb))
+        self._cb['wave'] = self.connect('wave', cb)
 
     def connect_idle(self, cb):
-        self._cb['idle'] = (cb, self.connect('idle', cb))
+        self._cb['idle'] = self.connect('idle', cb)
 
     def restart_sound_device(self):
         self.pipeline.set_state(Gst.State.NULL)

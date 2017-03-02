@@ -63,7 +63,7 @@ class WaveformMouth(Mouth):
         y_mag_bias = 1
         y_mag = 0.7
         count = 0
-        for value in self.wave:
+        for value in self.wave[::8]:
             peak = float(p1 * value * y_mag) + y_mag_bias * p2
             peak = min(bounds.height, peak)
             peak = max(0, peak)
@@ -71,6 +71,6 @@ class WaveformMouth(Mouth):
             cr.line_to(count * bounds.width / len(self.wave),
                        bounds.height - peak)
 
-            count += 1
+            count += 8
 
         cr.stroke()
