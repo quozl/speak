@@ -71,9 +71,10 @@ class Status:
                     sunglasses.Sunglasses: 5,
                     wireframes.Wireframes: 6,
                     sleepy.Sleepy: 7}
-        mouths  = { mouth.Mouth: 1,
-                    fft_mouth.FFTMouth: 2,
-                    waveform_mouth.WaveformMouth: 3 }
+        mouths  = { mouth.PeakMouth: 1,
+                    waveform_mouth.WaveformMouth: 2,
+                    fft_mouth.FFTMouth: 3,
+                    }
 
         return json.dumps({
             'voice': {'language': self.voice.language,
@@ -91,9 +92,10 @@ class Status:
                     5: sunglasses.Sunglasses,
                     6: wireframes.Wireframes,
                     7: sleepy.Sleepy}
-        mouths  = { 1: mouth.Mouth,
-                    2: fft_mouth.FFTMouth,
-                    3: waveform_mouth.WaveformMouth }
+        mouths  = { 1: mouth.PeakMouth,
+                    2: waveform_mouth.WaveformMouth,
+                    3: fft_mouth.FFTMouth,
+                    }
 
         data = json.loads(buf)
         self.voice = voice.Voice(data['voice']['language'],

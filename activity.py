@@ -100,7 +100,7 @@ MODE_BOT = 2
 MODE_CHAT = 3
 FACE_CARTOON = 1
 FACE_PHOTO = 2
-MOUTHS = [mouth.Mouth, fft_mouth.FFTMouth, waveform_mouth.WaveformMouth]
+MOUTHS = [mouth.PeakMouth, waveform_mouth.WaveformMouth, fft_mouth.FFTMouth, ]
 NUMBERS = ['one', 'two', 'three', 'four', 'five']
 SLEEPY_EYES = sleepy.Sleepy
 EYE_DICT = {
@@ -826,7 +826,6 @@ class SpeakActivity(activity.Activity):
         self.face.status.mouth = value
         self._update_face()
 
-        # this SegFaults: self.face.say(combo.get_active_text())
         if not quiet:
             self.face.say_notification(_('mouth changed'))
 
