@@ -40,29 +40,39 @@ class Mouth(Gtk.DrawingArea):
         #print >>sys.stderr, '%.3f Mouth.__init__' % (time.time())
         Gtk.DrawingArea.__init__(self)
 
-        def __realize_cb(widget):
-            #print >>sys.stderr, '%.3f Mouth.__realize_cb' % (time.time())
-            widget.connect("draw", self.__draw_cb)
-        self.connect("realize", __realize_cb)
-
-        self._volume = 0
         self.fill_color = fill_color
+        self.audio = audio
 
-        self._audio = audio
-        self._peak_hid = self._audio.connect("peak", self.__peak_cb)
+        def realize_cb(widget):
+            #print >>sys.stderr, '%.3f Mouth.realize_cb' % (time.time())
+            widget.connect("draw", self.draw_cb)
+        self.connect("realize", realize_cb)
 
-    def disconnect_audio(self):
-        #print >>sys.stderr, '%.3f Mouth.disconnect_audio' % (time.time())
-        self._audio.disconnect(self._peak_hid)
-        self._peak_hid = None
+    def stop(self):
+        #print >>sys.stderr, '%.3f Mouth.stop' % (time.time())
+        self.audio.disconnect_all()
+        self.audio = None
+
+class PeakMouth(Mouth):
+
+    def __init__(self, audio, fill_color):
+        Mouth.__init__(self, audio, fill_color)
+        audio.connect_peak(self.__peak_cb)
+        audio.connect_idle(self.__idle_cb)
+        self.volume = 0
 
     def __peak_cb(self, me, volume):
         #print >>sys.stderr, '%.3f Mouth.__peak_cb %r' % (time.time(), volume)
-        self._volume = volume
+        self.volume = volume
         self.queue_draw()
 
-    def __draw_cb(self, widget, cr):
-        #print >>sys.stderr, '%.3f Mouth.__draw_cb volume=%r' % \
+    def __idle_cb(self, me):
+        #print >>sys.stderr, '%.3f Mouth.__idle_cb %r' % (time.time(), volume)
+        self.volume = 0
+        self.queue_draw()
+
+    def draw_cb(self, widget, cr):
+        #print >>sys.stderr, '%.3f Mouth.draw_cb volume=%r' % \
         #    (time.time(), self._volume)
 
         bounds = self.get_allocation()
@@ -75,10 +85,10 @@ class Mouth(Gtk.DrawingArea):
         cr.rectangle(0, 0, bounds.width, bounds.height)
         cr.fill()
 
-        # Draw the mouth
-        volume = self._volume / 30000.
+        # draw the mouth
+        volume = self.volume / 30000.
         mouthH = volume * bounds.height
-        mouthW = volume**2 * (bounds.width / 2.) + bounds.width / 2.
+        mouthW = volume ** 2 * (bounds.width / 2.) + bounds.width / 2.
         #        T
         #  L           R
         #        B
@@ -93,5 +103,3 @@ class Mouth(Gtk.DrawingArea):
         cr.set_source_rgb(0, 0, 0)
         cr.close_path()
         cr.stroke()
-
-        return False

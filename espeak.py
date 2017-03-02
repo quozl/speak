@@ -36,12 +36,34 @@ RATE_MAX = 200
 
 class BaseAudioGrab(GObject.GObject):
     __gsignals__ = {
-        'peak': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT])
+        'peak': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT]),
+        'wave': (GObject.SIGNAL_RUN_FIRST, None, [GObject.TYPE_PYOBJECT]),
+        'idle': (GObject.SIGNAL_RUN_FIRST, None, []),
     }
 
     def __init__(self):
         GObject.GObject.__init__(self)
         self.pipeline = None
+
+        self._cb = {}
+        for cb in self.__gsignals__:
+            self._cb[cb] = [None, None]
+
+    def disconnect_all(self):
+        for cb in self.__gsignals__:
+            cb, hid = self._cb[cb]
+            if hid is not None:
+                self.disconnect(hid)
+                self._cb[cb] = [None, None]
+
+    def connect_peak(self, cb):
+        self._cb['peak'] = (cb, self.connect('peak', cb))
+
+    def connect_wave(self, cb):
+        self._cb['wave'] = (cb, self.connect('wave', cb))
+
+    def connect_idle(self, cb):
+        self._cb['idle'] = (cb, self.connect('idle', cb))
 
     def restart_sound_device(self):
         self.pipeline.set_state(Gst.State.NULL)
@@ -53,7 +75,7 @@ class BaseAudioGrab(GObject.GObject):
             return
 
         self.pipeline.set_state(Gst.State.NULL)
-        self.emit("peak", 0)
+        self.emit("idle")
 
         self.pipeline = None
 
@@ -90,6 +112,7 @@ class BaseAudioGrab(GObject.GObject):
 
             #print >>sys.stderr, '%.3f handoff size=%r pts=%r duration=%r npc=%r bpc=%r' % (time.time(), size, data.pts, data.duration, npc, bpc)
 
+            a = []
             p = []
             w = []
 
@@ -97,11 +120,12 @@ class BaseAudioGrab(GObject.GObject):
             when = data.pts
             last = data.pts + data.duration
             while True:
-                chop = numpy.fromstring(data.extract_dup(here, bpc), 'int16')
-                peak = numpy.core.max(chop)
+                wave = numpy.fromstring(data.extract_dup(here, bpc), 'int16')
+                peak = numpy.core.max(wave)
 
-                #print >>sys.stderr, '%.3f sq when=%r here=%r chop=%r peak=%r' % (time.time(), when, here, len(chop), peak)
+                #print >>sys.stderr, '%.3f sq when=%r here=%r wave=%r peak=%r' % (time.time(), when, here, len(wave), peak)
 
+                a.append(wave)
                 p.append(peak)
                 w.append(when)
 
@@ -126,7 +150,9 @@ class BaseAudioGrab(GObject.GObject):
                     #print >>sys.stderr, '%.3f poke not yet' % (time.time())
                     return True
 
+                self.emit("wave", a[0])
                 self.emit("peak", p[0])
+                del a[0]
                 del w[0]
                 del p[0]
 
